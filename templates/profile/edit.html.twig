@@ -1,0 +1,145 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Modifier mon profil{% endblock %}
+
+{% block body %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            
+            <div class="d-flex align-items-center mb-4">
+                <a href="{{ path('app_profile') }}" class="btn btn-outline-secondary me-3">
+                    ← Retour
+                </a>
+                <h2 class="mb-0">✏️ Modifier mon profil</h2>
+            </div>
+
+            {% for message in app.flashes('error') %}
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            {% endfor %}
+
+            <div class="card">
+                <div class="card-body">
+                    {{ form_start(form) }}
+                    
+                    <div class="row">
+                        <!-- Informations personnelles -->
+                        <div class="col-md-6">
+                            <h5 class="mb-3">👤 Informations personnelles</h5>
+                            
+                            <div class="mb-3">
+                                {{ form_label(form.email) }}
+                                {{ form_widget(form.email) }}
+                                {{ form_errors(form.email) }}
+                            </div>
+                            
+                            <div class="mb-3">
+                                {{ form_label(form.firstName) }}
+                                {{ form_widget(form.firstName) }}
+                                {{ form_errors(form.firstName) }}
+                            </div>
+                            
+                            <div class="mb-3">
+                                {{ form_label(form.lastName) }}
+                                {{ form_widget(form.lastName) }}
+                                {{ form_errors(form.lastName) }}
+                            </div>
+                            
+                            <div class="mb-3">
+                                {{ form_label(form.pseudo) }}
+                                {{ form_widget(form.pseudo) }}
+                                {{ form_help(form.pseudo) }}
+                                {{ form_errors(form.pseudo) }}
+                            </div>
+                        </div>
+                        
+                        <!-- Informations publiques -->
+                        <div class="col-md-6">
+                            <h5 class="mb-3">🌐 Informations publiques</h5>
+                            
+                            <div class="mb-3">
+                                {{ form_label(form.website) }}
+                                {{ form_widget(form.website) }}
+                                {{ form_errors(form.website) }}
+                            </div>
+                            
+                            <div class="mb-3">
+                                {{ form_label(form.timezone) }}
+                                {{ form_widget(form.timezone) }}
+                                {{ form_errors(form.timezone) }}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Bio sur toute la largeur -->
+                    <div class="row">
+                        <div class="col-12">
+                            <h5 class="mb-3">📝 À propos de vous</h5>
+                            <div class="mb-4">
+                                {{ form_label(form.bio) }}
+                                {{ form_widget(form.bio) }}
+                                {{ form_help(form.bio) }}
+                                {{ form_errors(form.bio) }}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Boutons -->
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ path('app_profile') }}" class="btn btn-outline-secondary">
+                            Annuler
+                        </a>
+                        {{ form_widget(form.save, {'attr': {'class': 'btn btn-primary px-4'}}) }}
+                    </div>
+                    
+                    {{ form_end(form) }}
+                </div>
+            </div>
+
+            <!-- Aperçu en temps réel -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h6 class="mb-0">👁️ Aperçu de votre profil</h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="profile-avatar bg-primary text-white rounded-circle d-inline-flex align-items-center justify-content-center me-3" style="width: 60px; height: 60px; font-size: 1.5rem;">
+                            {{ user.displayName|first|upper }}
+                        </div>
+                        <div>
+                            <strong>{{ user.displayName }}</strong>
+                            {% if user.website %}
+                                <br><small class="text-muted">🌐 {{ user.website }}</small>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% if user.bio %}
+                        <p class="mt-3 mb-0 text-muted small">{{ user.bio|slice(0, 100) }}{% if user.bio|length > 100 %}...{% endif %}</p>
+                    {% endif %}
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<script>
+// Aperçu en temps réel simple
+document.addEventListener('DOMContentLoaded', function() {
+    const firstNameInput = document.querySelector('#profile_firstName');
+    const lastNameInput = document.querySelector('#profile_lastName');
+    const pseudoInput = document.querySelector('#profile_pseudo');
+    
+    function updatePreview() {
+        // Logique simple d'aperçu, peut être améliorée
+    }
+    
+    if (firstNameInput) firstNameInput.addEventListener('input', updatePreview);
+    if (lastNameInput) lastNameInput.addEventListener('input', updatePreview);
+    if (pseudoInput) pseudoInput.addEventListener('input', updatePreview);
+});
+</script>
+{% endblock %}

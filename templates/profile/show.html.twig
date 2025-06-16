@@ -1,0 +1,145 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Mon Profil{% endblock %}
+
+{% block body %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            
+            {% for message in app.flashes('success') %}
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            {% endfor %}
+
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0">🎮 Mon Profil</h4>
+                    <a href="{{ path('app_profile_edit') }}" class="btn btn-primary btn-sm">
+                        ✏️ Modifier
+                    </a>
+                </div>
+                
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4 text-center mb-4">
+                            <div class="profile-avatar bg-primary text-white rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 120px; height: 120px; font-size: 3rem;">
+                                {{ user.displayName|first|upper }}
+                            </div>
+                            <h5 class="mt-3">{{ user.displayName }}</h5>
+                            {% if user.pseudo and user.pseudo != user.displayName %}
+                                <p class="text-muted">{{ user.pseudo }}</p>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="col-md-8">
+                            <dl class="row">
+                                <dt class="col-sm-4">Email</dt>
+                                <dd class="col-sm-8">{{ user.email }}</dd>
+                                
+                                {% if user.firstName or user.lastName %}
+                                <dt class="col-sm-4">Nom complet</dt>
+                                <dd class="col-sm-8">{{ user.firstName }} {{ user.lastName }}</dd>
+                                {% endif %}
+                                
+                                {% if user.website %}
+                                <dt class="col-sm-4">Site web</dt>
+                                <dd class="col-sm-8">
+                                    <a href="{{ user.website }}" target="_blank" class="text-decoration-none">
+                                        🌐 {{ user.website }}
+                                    </a>
+                                </dd>
+                                {% endif %}
+                                
+                                {% if user.timezone %}
+                                <dt class="col-sm-4">Fuseau horaire</dt>
+                                <dd class="col-sm-8">🕐 {{ user.timezone }}</dd>
+                                {% endif %}
+                                
+                                <dt class="col-sm-4">Membre depuis</dt>
+                                <dd class="col-sm-8">📅 {{ user.createdAt|date('d/m/Y') }}</dd>
+                            </dl>
+                            
+                            {% if user.bio %}
+                            <div class="mt-4">
+                                <h6>À propos</h6>
+                                <p class="text-muted">{{ user.bio|nl2br }}</p>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Comptes connectés -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="mb-0">🔗 Comptes connectés</h5>
+                </div>
+                <div class="card-body">
+                    {% if user.socialAccounts|length > 0 %}
+                        <div class="row">
+                            {% for account in user.socialAccounts %}
+                                {% if account.isActive %}
+                                <div class="col-md-6 mb-3">
+                                    <div class="d-flex align-items-center p-3 border rounded">
+                                        {% if account.platform == 'reddit' %}
+                                            <span class="me-3" style="font-size: 2rem;">🔴</span>
+                                            <div>
+                                                <strong>Reddit</strong><br>
+                                                <small class="text-muted">u/{{ account.accountName }}</small>
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p class="text-muted">Aucun compte connecté</p>
+                        <a href="{{ path('reddit_home') }}" class="btn btn-outline-primary">
+                            Connecter Reddit
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Stats rapides -->
+            {% if user.posts|length > 0 %}
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="mb-0">📊 Mes stats</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-4">
+                            <h3 class="text-primary">{{ user.posts|length }}</h3>
+                            <small class="text-muted">Posts créés</small>
+                        </div>
+                        <div class="col-4">
+                            <h3 class="text-success">
+                                {% set publishedCount = 0 %}
+                                {% for post in user.posts %}
+                                    {% if post.status == 'published' %}
+                                        {% set publishedCount = publishedCount + 1 %}
+                                    {% endif %}
+                                {% endfor %}
+                                {{ publishedCount }}
+                            </h3>
+                            <small class="text-muted">Publiés</small>
+                        </div>
+                        <div class="col-4">
+                            <h3 class="text-info">{{ user.socialAccounts|length }}</h3>
+                            <small class="text-muted">Comptes</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+        </div>
+    </div>
+</div>
+{% endblock %}

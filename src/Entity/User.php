@@ -3,8 +3,6 @@
 namespace App\Entity;
 
 use App\Repository\UserRepository;
-use Doctrine\Common\Collections\ArrayCollection;
-use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
@@ -23,20 +21,33 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column(length: 180)]
     private ?string $email = null;
 
-    /**
-     * @var list<string> The user roles
-     */
     #[ORM\Column]
     private array $roles = [];
 
-    /**
-     * @var string The hashed password
-     */
     #[ORM\Column]
     private ?string $password = null;
 
     #[ORM\Column]
     private ?\DateTimeImmutable $createdAt = null;
+
+    // ✅ Nouveaux champs profil
+    #[ORM\Column(length: 100, nullable: true)]
+    private ?string $firstName = null;
+
+    #[ORM\Column(length: 100, nullable: true)]
+    private ?string $lastName = null;
+
+    #[ORM\Column(length: 50, nullable: true)]
+    private ?string $pseudo = null;
+
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $website = null;
+
+    #[ORM\Column(length: 500, nullable: true)]
+    private ?string $bio = null;
+
+    #[ORM\Column(length: 50, nullable: true)]
+    private ?string $timezone = null;
 
     /**
      * @var Collection<int, SocialAccount>
@@ -57,6 +68,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         $this->createdAt = new \DateTimeImmutable();
     }
 
+    // Getters/Setters existants
     public function getId(): ?int
     {
         return $this->id;
@@ -116,6 +128,86 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function eraseCredentials(): void
     {
         // If you store any temporary, sensitive data on the user, clear it here
+    }
+
+    // ✅ Nouveaux getters/setters
+    public function getFirstName(): ?string
+    {
+        return $this->firstName;
+    }
+
+    public function setFirstName(?string $firstName): static
+    {
+        $this->firstName = $firstName;
+        return $this;
+    }
+
+    public function getLastName(): ?string
+    {
+        return $this->lastName;
+    }
+
+    public function setLastName(?string $lastName): static
+    {
+        $this->lastName = $lastName;
+        return $this;
+    }
+
+    public function getPseudo(): ?string
+    {
+        return $this->pseudo;
+    }
+
+    public function setPseudo(?string $pseudo): static
+    {
+        $this->pseudo = $pseudo;
+        return $this;
+    }
+
+    public function getWebsite(): ?string
+    {
+        return $this->website;
+    }
+
+    public function setWebsite(?string $website): static
+    {
+        $this->website = $website;
+        return $this;
+    }
+
+    public function getBio(): ?string
+    {
+        return $this->bio;
+    }
+
+    public function setBio(?string $bio): static
+    {
+        $this->bio = $bio;
+        return $this;
+    }
+
+    public function getTimezone(): ?string
+    {
+        return $this->timezone;
+    }
+
+    public function setTimezone(?string $timezone): static
+    {
+        $this->timezone = $timezone;
+        return $this;
+    }
+
+    public function getDisplayName(): string
+    {
+        if ($this->pseudo) {
+            return $this->pseudo;
+        }
+        
+        if ($this->firstName || $this->lastName) {
+            return trim($this->firstName . ' ' . $this->lastName);
+        }
+        
+        return explode('@', $this->email)[0];
     }
 
     /**
