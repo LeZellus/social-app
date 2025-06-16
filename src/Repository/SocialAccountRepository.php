@@ -169,4 +169,15 @@ class SocialAccountRepository extends ServiceEntityRepository
             $this->getEntityManager()->flush();
         }
     }
+
+    public function findByUserAndPlatformIgnoreStatus(User $user, string $platform): ?SocialAccount
+    {
+        return $this->createQueryBuilder('sa')
+            ->where('sa.user = :user')
+            ->andWhere('sa.platform = :platform')
+            ->setParameter('user', $user)
+            ->setParameter('platform', $platform)
+            ->getQuery()
+            ->getOneOrNullResult();
+    }
 }

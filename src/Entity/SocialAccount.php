@@ -8,6 +8,7 @@ use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: SocialAccountRepository::class)]
+#[ORM\UniqueConstraint(name: 'UNIQ_USER_PLATFORM', columns: ['user_id', 'platform'])]
 class SocialAccount
 {
     #[ORM\Id]
@@ -152,6 +153,19 @@ class SocialAccount
         return $this;
     }
 
+    public function isTokenValid(): bool
+    {
+        if (!$this->accessToken) {
+            return false;
+        }
+
+        if ($this->tokenExpiresAt && $this->tokenExpiresAt <= new \DateTimeImmutable()) {
+            return false;
+        }
+
+        return true;
+    }
+
     /**
      * @return Collection<int, PostPublication>
      */
@@ -166,7 +180,6 @@ class SocialAccount
             $this->postPublications->add($postPublication);
             $postPublication->setSocialAccount($this);
         }
-
         return $this;
     }
 
@@ -177,7 +190,6 @@ class SocialAccount
                 $postPublication->setSocialAccount(null);
             }
         }
-
         return $this;
     }
 
@@ -195,7 +207,6 @@ class SocialAccount
             $this->destinations->add($destination);
             $destination->setSocialAccount($this);
         }
-
         return $this;
     }
 
@@ -206,7 +217,6 @@ class SocialAccount
                 $destination->setSocialAccount(null);
             }
         }
-
         return $this;
     }
 }
