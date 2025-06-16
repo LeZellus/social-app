@@ -1,5 +1,7 @@
 doctrine:
     dbal:
+        logging: true
+        profiling: true
         url: '%env(resolve:DATABASE_URL)%'
 
         # IMPORTANT: You MUST configure your server version,
@@ -8,6 +10,7 @@ doctrine:
 
         profiling_collect_backtrace: '%kernel.debug%'
         use_savepoints: true
+        auto_commit: true
     orm:
         auto_generate_proxy_classes: true
         enable_lazy_ghost_objects: true

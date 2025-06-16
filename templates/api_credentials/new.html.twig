@@ -66,7 +66,7 @@
                                 <li>Allez sur <a href="https://www.reddit.com/prefs/apps" target="_blank" class="underline font-medium">reddit.com/prefs/apps</a></li>
                                 <li>Cliquez sur "Create App" ou "Create Another App"</li>
                                 <li>Choisissez "web app" comme type d'application</li>
-                                <li>Utilisez comme redirect URI : <code class="bg-blue-100 dark:bg-blue-800 px-1 rounded">{{ url('reddit_callback') }}</code></li>
+                                <li>Utilisez comme redirect URI : <code class="bg-blue-100 dark:bg-blue-800 px-1 rounded">{{ absolute_url(path('reddit_callback')) }}</code></li>
                                 <li>Une fois créée, notez le "Client ID" (sous le nom de l'app) et le "Client Secret"</li>
                             </ol>
                         {% elseif platform == 'twitter' %}

@@ -49,78 +49,77 @@ class RedditApiService
 
     public function handleCallback(string $code, string $state, string $redirectUri, User $user): void
     {
-        error_log("=== DEBUT CALLBACK REDDIT ===");
-        
-        $credentials = $this->getUserCredentials($user, 'reddit');
-        if (!$credentials) {
-            error_log("ERREUR: Aucune clef Reddit configurée");
-            throw new \Exception('Aucune clef Reddit configurée');
-        }
-        error_log("✓ Clefs récupérées: " . $credentials->getClientId());
-
-        $session = $this->requestStack->getSession();
-        $storedState = $session->get('reddit_oauth_state');
-
-        if ($state !== $storedState) {
-            error_log("ERREUR: État OAuth invalide - reçu: $state, attendu: $storedState");
-            throw new \Exception('État OAuth invalide');
-        }
-        error_log("✓ État OAuth validé");
-
-        // Échanger le code contre un token
         try {
+            error_log("=== DEBUT CALLBACK REDDIT ===");
+            
+            error_log("ÉTAPE 1: Récupération credentials");
+            $credentials = $this->getUserCredentials($user, 'reddit');
+            if (!$credentials) {
+                error_log("ERREUR: Aucune clef Reddit configurée");
+                throw new \Exception('Aucune clef Reddit configurée');
+            }
+            error_log("✓ Clefs récupérées");
+
+            error_log("ÉTAPE 2: Validation state");
+            $session = $this->requestStack->getSession();
+            $storedState = $session->get('reddit_oauth_state');
+            if ($state !== $storedState) {
+                error_log("ERREUR: État OAuth invalide");
+                throw new \Exception('État OAuth invalide');
+            }
+            error_log("✓ État OAuth validé");
+
+            error_log("ÉTAPE 3: Échange code/token");
             $tokenData = $this->exchangeCodeForToken($code, $redirectUri, $credentials);
-            error_log("✓ Token récupéré: " . json_encode(array_keys($tokenData)));
-        } catch (\Exception $e) {
-            error_log("ERREUR échange token: " . $e->getMessage());
-            throw $e;
-        }
-        
-        // Récupérer les infos utilisateur
-        try {
+            error_log("✓ Token récupéré");
+            
+            error_log("ÉTAPE 4: Récupération infos utilisateur");
             $userInfo = $this->getUserInfo($tokenData['access_token'], $credentials);
-            error_log("✓ Infos utilisateur: " . json_encode($userInfo));
-        } catch (\Exception $e) {
-            error_log("ERREUR infos utilisateur: " . $e->getMessage());
-            throw $e;
-        }
-        
-        // Créer ou mettre à jour le SocialAccount
-        $socialAccount = $this->socialAccountRepository->findByUserAndPlatform($user, 'reddit');
-        
-        if (!$socialAccount) {
-            error_log("Création d'un nouveau SocialAccount");
-            $socialAccount = new SocialAccount();
-            $socialAccount->setUser($user);
-            $socialAccount->setPlatform('reddit');
-            $this->entityManager->persist($socialAccount);
-        } else {
-            error_log("Mise à jour du SocialAccount existant");
-        }
+            error_log("✓ Infos utilisateur récupérées: " . $userInfo['name']);
+            
+            error_log("ÉTAPE 5: Recherche SocialAccount existant");
+            $socialAccount = $this->socialAccountRepository->findByUserAndPlatform($user, 'reddit');
+            
+            if (!$socialAccount) {
+                error_log("ÉTAPE 6: Création nouveau SocialAccount");
+                $socialAccount = new SocialAccount();
+                $socialAccount->setUser($user);
+                $socialAccount->setPlatform('reddit');
+                $socialAccount->setCreatedAt(new \DateTimeImmutable());
+                $this->entityManager->persist($socialAccount);
+                error_log("✓ Nouveau SocialAccount créé et persisté");
+            } else {
+                error_log("ÉTAPE 6: Mise à jour SocialAccount existant ID: " . $socialAccount->getId());
+            }
 
-        $socialAccount->setAccountName($userInfo['name']);
-        $socialAccount->setAccessToken($tokenData['access_token']);
-        $socialAccount->setRefreshToken($tokenData['refresh_token'] ?? null);
-        $socialAccount->setIsActive(true);
+            error_log("ÉTAPE 7: Configuration données");
+            $socialAccount->setAccountName($userInfo['name']);
+            $socialAccount->setAccessToken($tokenData['access_token']);
+            $socialAccount->setRefreshToken($tokenData['refresh_token'] ?? null);
+            $socialAccount->setIsActive(true);
 
-        if (isset($tokenData['expires_in'])) {
-            $expiresAt = new \DateTimeImmutable('+' . $tokenData['expires_in'] . ' seconds');
-            $socialAccount->setTokenExpiresAt($expiresAt);
-        }
+            if (isset($tokenData['expires_in'])) {
+                $expiresAt = new \DateTimeImmutable('+' . $tokenData['expires_in'] . ' seconds');
+                $socialAccount->setTokenExpiresAt($expiresAt);
+            }
+            error_log("✓ Données configurées");
 
-        try {
+            error_log("ÉTAPE 8: FLUSH");
             $this->entityManager->flush();
-            error_log("✓ SocialAccount sauvegardé avec succès - ID: " . $socialAccount->getId());
+            error_log("✓ FLUSH RÉUSSI");
+            
+            error_log("ÉTAPE 9: Session");
+            $session->set('reddit_access_token', $tokenData['access_token']);
+            $session->remove('reddit_oauth_state');
+            error_log("✓ Session mise à jour");
+            
+            error_log("=== FIN CALLBACK REDDIT SUCCÈS ===");
+            
         } catch (\Exception $e) {
-            error_log("ERREUR sauvegarde: " . $e->getMessage());
+            error_log("❌ EXCEPTION DANS CALLBACK: " . $e->getMessage());
+            error_log("❌ STACK TRACE: " . $e->getTraceAsString());
             throw $e;
         }
-
-        $session->set('reddit_access_token', $tokenData['access_token']);
-        $session->set('reddit_token_expiry', time() + ($tokenData['expires_in'] ?? 3600));
-        $session->remove('reddit_oauth_state');
-        
-        error_log("=== FIN CALLBACK REDDIT ===");
     }
 
     private function exchangeCodeForToken(string $code, string $redirectUri, ApiCredentials $credentials): array
