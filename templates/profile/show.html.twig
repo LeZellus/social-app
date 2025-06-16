@@ -3,132 +3,233 @@
 {% block title %}Mon Profil{% endblock %}
 
 {% block body %}
-<div class="max-w-4xl mx-auto p-6">
-    
-    {% for message in app.flashes('success') %}
-        <div class="bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg mb-6">
-            {{ message }}
-            <button type="button" class="float-right text-green-600 hover:text-green-800">×</button>
-        </div>
-    {% endfor %}
-
-    <!-- Header Profile -->
-    <div class="bg-white rounded-2xl shadow-sm border p-8 mb-6">
-        <div class="flex justify-between items-start mb-8">
-            <div class="flex items-center space-x-6">
-                <div class="w-20 h-20 bg-rose-500 rounded-full flex items-center justify-center text-white text-2xl font-semibold">
-                    {{ user.displayName|first|upper }}
-                </div>
-                <div>
-                    <h1 class="text-2xl font-semibold text-gray-900">{{ user.displayName }}</h1>
-                    {% if user.pseudo and user.pseudo != user.displayName %}
-                        <p class="text-gray-500">{{ user.pseudo }}</p>
-                    {% endif %}
-                    <p class="text-sm text-gray-400 mt-1">Membre depuis {{ user.createdAt|date('F Y') }}</p>
-                </div>
+<div class="sm:ml-64">
+    <div class="p-4 min-h-screen bg-gray-50 dark:bg-gray-900">
+        
+        <!-- Alerts -->
+        {% for message in app.flashes('success') %}
+            <div class="flex items-center p-4 mb-4 text-sm text-green-800 border border-green-300 rounded-lg bg-green-50 dark:bg-gray-800 dark:text-green-400 dark:border-green-800" role="alert">
+                <svg class="flex-shrink-0 inline w-4 h-4 me-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5ZM9.5 4a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3ZM12 15H8a1 1 0 0 1 0-2h1v-3H8a1 1 0 0 1 0-2h2a1 1 0 0 1 1 1v4h1a1 1 0 0 1 0 2Z"/>
+                </svg>
+                <div>{{ message }}</div>
+                <button type="button" class="ms-auto -mx-1.5 -my-1.5 bg-green-50 text-green-500 rounded-lg focus:ring-2 focus:ring-green-400 p-1.5 hover:bg-green-200 inline-flex items-center justify-center h-8 w-8 dark:bg-gray-800 dark:text-green-400 dark:hover:bg-gray-700" data-dismiss-target="#alert-3" aria-label="Close">
+                    <svg class="w-3 h-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14">
+                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"/>
+                    </svg>
+                </button>
             </div>
-            <a href="{{ path('app_profile_edit') }}" class="bg-gray-900 text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition-colors">
-                Modifier
-            </a>
+        {% endfor %}
+
+        <!-- Page Header -->
+        <div class="mb-6">
+            <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Mon Profil</h1>
+            <p class="text-gray-600 dark:text-gray-400">Gérez vos informations personnelles et vos comptes connectés</p>
         </div>
 
-        <!-- Profile Details -->
-        <div class="grid md:grid-cols-2 gap-6">
-            <div class="space-y-4">
-                <div>
-                    <dt class="text-sm font-medium text-gray-500">Email</dt>
-                    <dd class="text-gray-900">{{ user.email }}</dd>
-                </div>
-                {% if user.website %}
-                <div>
-                    <dt class="text-sm font-medium text-gray-500">Site web</dt>
-                    <dd><a href="{{ user.website }}" target="_blank" class="text-rose-500 hover:text-rose-600">🌐 {{ user.website }}</a></dd>
-                </div>
-                {% endif %}
-            </div>
-            <div class="space-y-4">
-                {% if user.firstName or user.lastName %}
-                <div>
-                    <dt class="text-sm font-medium text-gray-500">Nom complet</dt>
-                    <dd class="text-gray-900">{{ user.firstName }} {{ user.lastName }}</dd>
-                </div>
-                {% endif %}
-                {% if user.timezone %}
-                <div>
-                    <dt class="text-sm font-medium text-gray-500">Fuseau horaire</dt>
-                    <dd class="text-gray-900">🕐 {{ user.timezone }}</dd>
-                </div>
-                {% endif %}
-            </div>
-        </div>
-
-        {% if user.bio %}
-        <div class="mt-6 pt-6 border-t border-gray-100">
-            <h3 class="text-sm font-medium text-gray-500 mb-2">À propos</h3>
-            <p class="text-gray-700">{{ user.bio|nl2br }}</p>
-        </div>
-        {% endif %}
-    </div>
-
-    <!-- Connected Accounts -->
-    <div class="bg-white rounded-2xl shadow-sm border p-8 mb-6">
-        <h2 class="text-xl font-semibold text-gray-900 mb-6">Comptes connectés</h2>
-        {% if user.socialAccounts|length > 0 %}
-            <div class="grid md:grid-cols-2 gap-4">
-                {% for account in user.socialAccounts %}
-                    {% if account.isActive %}
-                    <div class="flex items-center p-4 border border-gray-200 rounded-xl hover:border-gray-300 transition-colors">
-                        {% if account.platform == 'reddit' %}
-                            <div class="w-12 h-12 bg-orange-500 rounded-full flex items-center justify-center text-white text-xl mr-4">🔴</div>
-                            <div>
-                                <div class="font-medium text-gray-900">Reddit</div>
-                                <div class="text-sm text-gray-500">u/{{ account.accountName }}</div>
+        <!-- Profile Card -->
+        <div class="bg-white dark:bg-gray-800 shadow rounded-lg mb-6">
+            <div class="px-6 py-8">
+                <div class="flex items-center justify-between mb-6">
+                    <div class="flex items-center space-x-4">
+                        <div class="relative">
+                            <div class="w-16 h-16 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white text-2xl font-bold shadow-lg">
+                                {{ user.displayName|first|upper }}
                             </div>
-                        {% endif %}
+                            <div class="absolute -bottom-1 -right-1 w-6 h-6 bg-green-500 rounded-full border-2 border-white dark:border-gray-800"></div>
+                        </div>
+                        <div>
+                            <h2 class="text-2xl font-bold text-gray-900 dark:text-white">{{ user.displayName }}</h2>
+                            {% if user.pseudo and user.pseudo != user.displayName %}
+                                <p class="text-gray-600 dark:text-gray-400">@{{ user.pseudo }}</p>
+                            {% endif %}
+                            <div class="flex items-center text-sm text-gray-500 dark:text-gray-400 mt-1">
+                                <svg class="w-4 h-4 me-1" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M10 0a10 10 0 1 0 10 10A10.011 10.011 0 0 0 10 0Zm3.982 13.982a1 1 0 0 1-1.414 0l-3.274-3.274A1.012 1.012 0 0 1 9 10V6a1 1 0 0 1 2 0v3.586l2.982 2.982a1 1 0 0 1 0 1.414Z"/>
+                                </svg>
+                                Membre depuis {{ user.createdAt|date('F Y') }}
+                            </div>
+                        </div>
                     </div>
-                    {% endif %}
-                {% endfor %}
-                <a href="{{ path('reddit_home') }}" class="flex items-center justify-center p-4 border-2 border-dashed border-gray-300 rounded-xl hover:border-gray-400 transition-colors text-gray-500 hover:text-gray-700">
-                    <span class="text-2xl mr-2">+</span>
-                    Connecter Reddit
-                </a>
+                    <a href="{{ path('app_profile_edit') }}" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-700 border border-transparent rounded-lg hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">
+                        <svg class="w-3.5 h-3.5 me-2" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 18">
+                            <path d="M12.687 14.408a3.01 3.01 0 0 1-1.533.821l-3.566.713a3 3 0 0 1-3.53-3.53l.713-3.566a3.01 3.01 0 0 1 .821-1.533L10.905 2H2.167A2.169 2.169 0 0 0 0 4.167v11.666A2.169 2.169 0 0 0 2.167 18h11.666A2.169 2.169 0 0 0 16 15.833V11.1l-3.313 3.308Zm5.53-9.065.546-.546a2.518 2.518 0 0 0 0-3.56 2.576 2.576 0 0 0-3.559 0l-.547.547 3.56 3.559Z"/>
+                        </svg>
+                        Modifier
+                    </a>
+                </div>
             </div>
-        {% else %}
-            <div class="text-center py-8">
-                <p class="text-gray-500 mb-4">Aucun compte connecté</p>
-                <a href="{{ path('reddit_home') }}" class="bg-rose-500 text-white px-6 py-2 rounded-lg hover:bg-rose-600 transition-colors">
-                    Connecter Reddit
-                </a>
-            </div>
-        {% endif %}
-    </div>
+        </div>
 
-    <!-- Stats -->
-    {% if user.posts|length > 0 %}
-    <div class="bg-white rounded-2xl shadow-sm border p-8">
-        <h2 class="text-xl font-semibold text-gray-900 mb-6">Mes statistiques</h2>
-        <div class="grid grid-cols-3 gap-6 text-center">
-            <div class="p-4">
-                <div class="text-3xl font-bold text-gray-900">{{ user.posts|length }}</div>
-                <div class="text-sm text-gray-500 mt-1">Posts créés</div>
+        <!-- Connected Accounts Section -->
+        <div class="bg-white dark:bg-gray-800 shadow rounded-lg mb-6">
+            <div class="px-6 py-8">
+                <div class="flex items-center mb-6">
+                    <svg class="w-6 h-6 text-gray-700 dark:text-gray-300 me-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 19">
+                        <path d="M14.5 0A3.987 3.987 0 0 0 11 2.1a4.977 4.977 0 0 1 3.9 5.858A3.989 3.989 0 0 0 14.5 0ZM9 13h2a4 4 0 0 1 4 4v2H5v-2a4 4 0 0 1 4-4Z"/>
+                        <path d="M5 19h10v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2ZM5 7a5.008 5.008 0 0 1 4-4.9 3.988 3.988 0 1 0-3.9 5.859A4.974 4.974 0 0 1 5 7Zm5 3a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm5-1h-.424a5.016 5.016 0 0 1-1.942 2.232A6.007 6.007 0 0 1 17 17h2a1 1 0 0 0 1-1v-2a5.006 5.006 0 0 0-5-5ZM5.424 9H5a5.006 5.006 0 0 0-5 5v2a1 1 0 0 0 1 1h2a6.007 6.007 0 0 1 4.366-5.768A5.016 5.016 0 0 1 5.424 9Z"/>
+                    </svg>
+                    <h3 class="text-xl font-semibold text-gray-900 dark:text-white">Comptes connectés</h3>
+                </div>
+                
+                {% if user.socialAccounts|length > 0 %}
+                    <div class="grid gap-4 mb-4">
+                        {% for account in user.socialAccounts %}
+                            {% if account.isActive %}
+                            <div class="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                                <div class="flex items-center space-x-4">
+                                    {% if account.platform == 'reddit' %}
+                                        <div class="w-12 h-12 bg-orange-500 rounded-full flex items-center justify-center text-white text-xl">
+                                            <svg class="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">
+                                                <path d="M12 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0zm5.01 4.744c.688 0 1.25.561 1.25 1.249a1.25 1.25 0 0 1-2.498.056l-2.597-.547-.8 3.747c1.824.07 3.48.632 4.674 1.488.308-.309.73-.491 1.207-.491.968 0 1.754.786 1.754 1.754 0 .716-.435 1.333-1.01 1.614a3.111 3.111 0 0 1 .042.52c0 2.694-3.13 4.87-7.004 4.87-3.874 0-7.004-2.176-7.004-4.87 0-.183.015-.366.043-.534A1.748 1.748 0 0 1 4.028 12c0-.968.786-1.754 1.754-1.754.463 0 .898.196 1.207.49 1.207-.883 2.878-1.43 4.744-1.487l.885-4.182a.342.342 0 0 1 .14-.197.35.35 0 0 1 .238-.042l2.906.617a1.214 1.214 0 0 1 1.108-.701zM9.25 12C8.561 12 8 12.562 8 13.25c0 .687.561 1.248 1.25 1.248.687 0 1.248-.561 1.248-1.249 0-.688-.561-1.249-1.249-1.249zm5.5 0c-.687 0-1.248.561-1.248 1.25 0 .687.561 1.248 1.249 1.248.688 0 1.249-.561 1.249-1.249 0-.687-.562-1.249-1.25-1.249zm-5.466 3.99a.327.327 0 0 0-.231.094.33.33 0 0 0 0 .463c.842.842 2.484.913 2.961.913.477 0 2.105-.056 2.961-.913a.361.361 0 0 0 .029-.463.33.33 0 0 0-.464 0c-.547.533-1.684.73-2.512.73-.828 0-1.979-.196-2.512-.73a.326.326 0 0 0-.232-.095z"/>
+                                            </svg>
+                                        </div>
+                                        <div>
+                                            <div class="font-medium text-gray-900 dark:text-white">Reddit</div>
+                                            <div class="text-sm text-gray-500 dark:text-gray-400">u/{{ account.accountName }}</div>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                <div class="flex items-center space-x-2">
+                                    <span class="inline-flex items-center bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded-full dark:bg-green-900 dark:text-green-300">
+                                        <span class="w-2 h-2 me-1 bg-green-500 rounded-full"></span>
+                                        Connecté
+                                    </span>
+                                </div>
+                            </div>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                {% endif %}
+
+                <!-- Add Account Button -->
+                <a href="{{ path('reddit_home') }}" class="w-full flex items-center justify-center px-4 py-2 border-2 border-gray-300 border-dashed rounded-lg hover:border-gray-400 hover:bg-gray-50 dark:border-gray-600 dark:hover:border-gray-500 dark:hover:bg-gray-700 transition-colors">
+                    <svg class="w-8 h-8 text-gray-400 dark:text-gray-500" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
+                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 5.757v8.486M5.757 10h8.486M19 10a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/>
+                    </svg>
+                    <span class="ml-2 text-sm font-medium text-gray-900 dark:text-white">Connecter Reddit</span>
+                </a>
             </div>
-            <div class="p-4">
-                {% set publishedCount = 0 %}
-                {% for post in user.posts %}
-                    {% if post.status == 'published' %}
-                        {% set publishedCount = publishedCount + 1 %}
-                    {% endif %}
-                {% endfor %}
-                <div class="text-3xl font-bold text-green-600">{{ publishedCount }}</div>
-                <div class="text-sm text-gray-500 mt-1">Publiés</div>
+        </div>
+
+        <!-- Statistics Section -->
+        {% if user.posts is defined and user.posts|length > 0 %}
+        <div class="bg-white dark:bg-gray-800 shadow rounded-lg mb-6">
+            <div class="px-6 py-8">
+                <div class="flex items-center mb-6">
+                    <svg class="w-6 h-6 text-gray-700 dark:text-gray-300 me-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M5 11.424V1a1 1 0 1 0-2 0v10.424a3.228 3.228 0 0 0 0 6.152V19a1 1 0 1 0 2 0v-1.424a3.228 3.228 0 0 0 0-6.152ZM19.25 14.5A3.243 3.243 0 0 0 16 11.424V1a1 1 0 0 0-2 0v10.424a3.227 3.227 0 0 0 0 6.152V19a1 1 0 1 0 2 0v-1.424a3.243 3.243 0 0 0 3.25-3.076Zm-6-9A3.243 3.243 0 0 0 10 2.424V1a1 1 0 0 0-2 0v1.424a3.228 3.228 0 0 0 0 6.152V19a1 1 0 1 0 2 0V8.576A3.243 3.243 0 0 0 13.25 5.5Z"/>
+                    </svg>
+                    <h3 class="text-xl font-semibold text-gray-900 dark:text-white">Mes statistiques</h3>
+                </div>
+                
+                <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                    <div class="bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg shadow p-6 text-white">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0">
+                                <svg class="w-8 h-8" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 18 18">
+                                    <path d="M17 11h-2.722L8 17.278a5.512 5.512 0 0 1-.9.722H17a1 1 0 0 0 1-1v-5a1 1 0 0 0-1-1ZM6 0H1a1 1 0 0 0-1 1v13.5a3.5 3.5 0 1 0 7 0V1a1 1 0 0 0-1-1ZM3.5 15.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2ZM16.132 4.9 12.6 1.368a1 1 0 0 0-1.414 0L9 3.55v9.9l7.132-7.132a1 1 0 0 0 0-1.418Z"/>
+                                </svg>
+                            </div>
+                            <div class="ml-5 w-0 flex-1">
+                                <dl>
+                                    <dt class="text-sm font-medium text-blue-100 truncate">Posts créés</dt>
+                                    <dd class="text-3xl font-semibold text-white">{{ user.posts|length }}</dd>
+                                </dl>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-gradient-to-r from-green-500 to-green-600 rounded-lg shadow p-6 text-white">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0">
+                                <svg class="w-8 h-8" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5Zm3.707 8.207-4 4a1 1 0 0 1-1.414 0l-2-2a1 1 0 0 1 1.414-1.414L9 10.586l3.293-3.293a1 1 0 0 1 1.414 1.414Z"/>
+                                </svg>
+                            </div>
+                            <div class="ml-5 w-0 flex-1">
+                                <dl>
+                                    <dt class="text-sm font-medium text-green-100 truncate">Publiés</dt>
+                                    <dd class="text-3xl font-semibold text-white">
+                                        {% set publishedCount = 0 %}
+                                        {% for post in user.posts %}
+                                            {% if post.status == 'published' %}
+                                                {% set publishedCount = publishedCount + 1 %}
+                                            {% endif %}
+                                        {% endfor %}
+                                        {{ publishedCount }}
+                                    </dd>
+                                </dl>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-gradient-to-r from-purple-500 to-purple-600 rounded-lg shadow p-6 text-white">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0">
+                                <svg class="w-8 h-8" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 19">
+                                    <path d="M14.5 0A3.987 3.987 0 0 0 11 2.1a4.977 4.977 0 0 1 3.9 5.858A3.989 3.989 0 0 0 14.5 0ZM9 13h2a4 4 0 0 1 4 4v2H5v-2a4 4 0 0 1 4-4Z"/>
+                                    <path d="M5 19h10v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2ZM5 7a5.008 5.008 0 0 1 4-4.9 3.988 3.988 0 1 0-3.9 5.859A4.974 4.974 0 0 1 5 7Zm5 3a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm5-1h-.424a5.016 5.016 0 0 1-1.942 2.232A6.007 6.007 0 0 1 17 17h2a1 1 0 0 0 1-1v-2a5.006 5.006 0 0 0-5-5ZM5.424 9H5a5.006 5.006 0 0 0-5 5v2a1 1 0 0 0 1 1h2a6.007 6.007 0 0 1 4.366-5.768A5.016 5.016 0 0 1 5.424 9Z"/>
+                                </svg>
+                            </div>
+                            <div class="ml-5 w-0 flex-1">
+                                <dl>
+                                    <dt class="text-sm font-medium text-purple-100 truncate">Comptes</dt>
+                                    <dd class="text-3xl font-semibold text-white">{{ user.socialAccounts|length }}</dd>
+                                </dl>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div class="p-4">
-                <div class="text-3xl font-bold text-blue-600">{{ user.socialAccounts|length }}</div>
-                <div class="text-sm text-gray-500 mt-1">Comptes</div>
+        </div>
+        {% endif %}
+
+        <!-- Quick Actions -->
+        <div class="bg-white dark:bg-gray-800 shadow rounded-lg">
+            <div class="px-6 py-8">
+                <div class="flex items-center mb-6">
+                    <svg class="w-6 h-6 text-gray-700 dark:text-gray-300 me-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 18 20">
+                        <path d="M16 1h-3.278A1.992 1.992 0 0 0 11 0H7a1.993 1.993 0 0 0-1.722 1H2a2 2 0 0 0-2 2v15a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V3a2 2 0 0 0-2-2ZM7 2h4v3H7V2Zm5.7 8.289-3.975 3.857a1 1 0 0 1-1.393 0L5.3 12.182a1.002 1.002 0 1 1 1.4-1.436l1.328 1.289 3.28-3.181a1 1 0 1 1 1.392 1.435Z"/>
+                    </svg>
+                    <h3 class="text-xl font-semibold text-gray-900 dark:text-white">Actions rapides</h3>
+                </div>
+                
+                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <a href="{{ path('reddit_create_post') }}" class="relative block p-6 bg-white border border-gray-200 rounded-lg shadow hover:bg-gray-100 dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-700 transition-colors group">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0">
+                                <div class="w-10 h-10 bg-blue-100 dark:bg-blue-900 rounded-lg flex items-center justify-center group-hover:bg-blue-200 dark:group-hover:bg-blue-800 transition-colors">
+                                    <svg class="w-6 h-6 text-blue-600 dark:text-blue-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
+                                        <path d="M9.546.5a9.5 9.5 0 1 0 9.5 9.5 9.51 9.51 0 0 0-9.5-9.5ZM13.788 11h-3.242v3.242a1 1 0 1 1-2 0V11H5.304a1 1 0 0 1 0-2h3.242V5.758a1 1 0 0 1 2 0V9h3.242a1 1 0 1 1 0 2Z"/>
+                                    </svg>
+                                </div>
+                            </div>
+                            <div class="ml-4">
+                                <h5 class="text-lg font-medium text-gray-900 dark:text-white">Créer un post</h5>
+                                <p class="text-sm text-gray-500 dark:text-gray-400">Publier du contenu sur Reddit</p>
+                            </div>
+                        </div>
+                    </a>
+
+                    <a href="{{ path('app_profile_edit') }}" class="relative block p-6 bg-white border border-gray-200 rounded-lg shadow hover:bg-gray-100 dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-700 transition-colors group">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0">
+                                <div class="w-10 h-10 bg-gray-100 dark:bg-gray-700 rounded-lg flex items-center justify-center group-hover:bg-gray-200 dark:group-hover:bg-gray-600 transition-colors">
+                                    <svg class="w-6 h-6 text-gray-600 dark:text-gray-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 18">
+                                        <path d="M12.687 14.408a3.01 3.01 0 0 1-1.533.821l-3.566.713a3 3 0 0 1-3.53-3.53l.713-3.566a3.01 3.01 0 0 1 .821-1.533L10.905 2H2.167A2.169 2.169 0 0 0 0 4.167v11.666A2.169 2.169 0 0 0 2.167 18h11.666A2.169 2.169 0 0 0 16 15.833V11.1l-3.313 3.308Zm5.53-9.065.546-.546a2.518 2.518 0 0 0 0-3.56 2.576 2.576 0 0 0-3.559 0l-.547.547 3.56 3.559Z"/>
+                                    </svg>
+                                </div>
+                            </div>
+                            <div class="ml-4">
+                                <h5 class="text-lg font-medium text-gray-900 dark:text-white">Modifier le profil</h5>
+                                <p class="text-sm text-gray-500 dark:text-gray-400">Mettre à jour vos informations</p>
+                            </div>
+                        </div>
+                    </a>
+                </div>
             </div>
         </div>
     </div>
-    {% endif %}
-
 </div>
 {% endblock %}
