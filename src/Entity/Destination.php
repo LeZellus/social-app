@@ -37,9 +37,16 @@ class Destination
     #[ORM\Column]
     private ?\DateTimeImmutable $createdAt = null;
 
+    /**
+     * @var Collection<int, Destination>
+     */
+    #[ORM\OneToMany(targetEntity: Destination::class, mappedBy: 'socialAccount', orphanRemoval: true)]
+    private Collection $destinations;
+
     public function __construct()
     {
         $this->createdAt = new \DateTimeImmutable();
+        $this->destinations = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -121,6 +128,35 @@ class Destination
     public function setCreatedAt(\DateTimeImmutable $createdAt): static
     {
         $this->createdAt = $createdAt;
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Destination>
+     */
+    public function getDestinations(): Collection
+    {
+        return $this->destinations;
+    }
+
+    public function addDestination(Destination $destination): static
+    {
+        if (!$this->destinations->contains($destination)) {
+            $this->destinations->add($destination);
+            $destination->setSocialAccount($this);
+        }
+
+        return $this;
+    }
+
+    public function removeDestination(Destination $destination): static
+    {
+        if ($this->destinations->removeElement($destination)) {
+            if ($destination->getSocialAccount() === $this) {
+                $destination->setSocialAccount(null);
+            }
+        }
+
         return $this;
     }
 }

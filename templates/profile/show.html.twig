@@ -247,7 +247,7 @@
                 </div>
                 
                 <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    <a href="{{ path('reddit_create_post') }}" class="relative block p-6 bg-white border border-gray-200 rounded-lg shadow hover:bg-gray-100 dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-700 transition-colors group">
+                    <a href="{{ path('app_post_new') }}" class="relative block p-6 bg-white border border-gray-200 rounded-lg shadow hover:bg-gray-100 dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-700 transition-colors group">
                         <div class="flex items-center">
                             <div class="flex-shrink-0">
                                 <div class="w-10 h-10 bg-blue-100 dark:bg-blue-900 rounded-lg flex items-center justify-center group-hover:bg-blue-200 dark:group-hover:bg-blue-800 transition-colors">
@@ -258,7 +258,7 @@
                             </div>
                             <div class="ml-4">
                                 <h5 class="text-lg font-medium text-gray-900 dark:text-white">Créer un post</h5>
-                                <p class="text-sm text-gray-500 dark:text-gray-400">Publier du contenu sur Reddit</p>
+                                <p class="text-sm text-gray-500 dark:text-gray-400">Publier du contenu sur vos réseaux sociaux</p>
                             </div>
                         </div>
                     </a>
@@ -275,6 +275,38 @@
                             <div class="ml-4">
                                 <h5 class="text-lg font-medium text-gray-900 dark:text-white">Modifier le profil</h5>
                                 <p class="text-sm text-gray-500 dark:text-gray-400">Mettre à jour vos informations</p>
+                            </div>
+                        </div>
+                    </a>
+
+                    <a href="{{ path('app_social_accounts') }}" class="relative block p-6 bg-white border border-gray-200 rounded-lg shadow hover:bg-gray-100 dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-700 transition-colors group">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0">
+                                <div class="w-10 h-10 bg-green-100 dark:bg-green-900 rounded-lg flex items-center justify-center group-hover:bg-green-200 dark:group-hover:bg-green-800 transition-colors">
+                                    <svg class="w-6 h-6 text-green-600 dark:text-green-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
+                                        <path d="M10 0C4.612 0 0 4.336 0 9.677c0 2.76 1.443 5.203 3.654 6.62l-.332 1.768c-.299 1.595.66 2.935 2.142 2.935.717 0 1.4-.3 1.88-.824l3.656-.824 3.657.824c.48.523 1.162.824 1.879.824 1.481 0 2.44-1.34 2.142-2.935l-.332-1.768C18.557 14.88 20 12.437 20 9.677 20 4.336 15.388 0 10 0Z"/>
+                                    </svg>
+                                </div>
+                            </div>
+                            <div class="ml-4">
+                                <h5 class="text-lg font-medium text-gray-900 dark:text-white">Gérer mes comptes</h5>
+                                <p class="text-sm text-gray-500 dark:text-gray-400">Connecter vos réseaux sociaux</p>
+                            </div>
+                        </div>
+                    </a>
+
+                    <a href="{{ path('app_api_credentials_index') }}" class="relative block p-6 bg-white border border-gray-200 rounded-lg shadow hover:bg-gray-100 dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-700 transition-colors group">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0">
+                                <div class="w-10 h-10 bg-purple-100 dark:bg-purple-900 rounded-lg flex items-center justify-center group-hover:bg-purple-200 dark:group-hover:bg-purple-800 transition-colors">
+                                    <svg class="w-6 h-6 text-purple-600 dark:text-purple-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 18 20">
+                                        <path fill-rule="evenodd" d="M8 3a5 5 0 0 0 0 10 6.97 6.97 0 0 1 3.889-1.126A5.002 5.002 0 0 0 8 3Zm-3.73 7.07A3 3 0 0 0 8 13a3 3 0 0 0 3.73-2.93 8.27 8.27 0 0 1 2.338.849A6.97 6.97 0 0 1 15 15v2a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-2a6.97 6.97 0 0 1 .932-3.43 8.27 8.27 0 0 1 .338-.5Z" clip-rule="evenodd"/>
+                                    </svg>
+                                </div>
+                            </div>
+                            <div class="ml-4">
+                                <h5 class="text-lg font-medium text-gray-900 dark:text-white">Clefs API</h5>
+                                <p class="text-sm text-gray-500 dark:text-gray-400">Configurer vos clefs privées</p>
                             </div>
                         </div>
                     </a>

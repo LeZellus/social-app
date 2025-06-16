@@ -1,0 +1,144 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Modifier {{ credentials.platform|title }}{% endblock %}
+
+{% block body %}
+<div class="sm:ml-64">
+    <div class="p-4 min-h-screen bg-gray-50 dark:bg-gray-900">
+        
+        <!-- Navigation -->
+        <div class="mb-6">
+            <a href="{{ path('app_api_credentials_index') }}" 
+               class="text-blue-600 hover:text-blue-700 dark:text-blue-400 text-sm font-medium">
+                ← Retour aux clefs API
+            </a>
+        </div>
+
+        <!-- Page Header -->
+        <div class="mb-6">
+            <div class="flex items-center space-x-3 mb-2">
+                <span class="text-3xl">
+                    {% if credentials.platform == 'reddit' %}📱{% elseif credentials.platform == 'twitter' %}🐦{% else %}🔧{% endif %}
+                </span>
+                <h1 class="text-3xl font-bold text-gray-900 dark:text-white">
+                    Modifier {{ credentials.platform|title }}
+                </h1>
+            </div>
+            <p class="text-gray-600 dark:text-gray-400">
+                Mettez à jour vos clefs API {{ credentials.platform|title }}
+            </p>
+        </div>
+
+        <!-- Alert Messages -->
+        {% for message in app.flashes('success') %}
+            <div class="flex items-center p-4 mb-4 text-sm text-green-800 border border-green-300 rounded-lg bg-green-50">
+                <svg class="flex-shrink-0 inline w-4 h-4 me-3" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5ZM9.5 4a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3ZM12 15H8a1 1 0 0 1 0-2h1v-3H8a1 1 0 0 1 0-2h2a1 1 0 0 1 1 1v4h1a1 1 0 0 1 0 2Z"/>
+                </svg>
+                <span>{{ message }}</span>
+            </div>
+        {% endfor %}
+
+        {% for message in app.flashes('error') %}
+            <div class="flex items-center p-4 mb-4 text-sm text-red-800 border border-red-300 rounded-lg bg-red-50">
+                <svg class="flex-shrink-0 inline w-4 h-4 me-3" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5ZM9.5 4a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3ZM12 15H8a1 1 0 0 1 0-2h1v-3H8a1 1 0 0 1 0-2h2a1 1 0 0 1 1 1v4h1a1 1 0 0 1 0 2Z"/>
+                </svg>
+                <span>{{ message }}</span>
+            </div>
+        {% endfor %}
+
+        <!-- Info Section -->
+        <div class="bg-yellow-50 dark:bg-yellow-900 border border-yellow-200 dark:border-yellow-800 rounded-lg p-6 mb-6">
+            <div class="flex">
+                <div class="flex-shrink-0">
+                    <svg class="h-5 w-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                    </svg>
+                </div>
+                <div class="ml-3">
+                    <h3 class="text-sm font-medium text-yellow-800 dark:text-yellow-200">
+                        Informations importantes
+                    </h3>
+                    <div class="mt-2 text-sm text-yellow-700 dark:text-yellow-300">
+                        <ul class="list-disc list-inside space-y-1">
+                            <li>Créé le {{ credentials.createdAt|date('d/m/Y à H:i') }}</li>
+                            {% if credentials.updatedAt %}
+                                <li>Dernière modification le {{ credentials.updatedAt|date('d/m/Y à H:i') }}</li>
+                            {% endif %}
+                            <li>Si vous modifiez ces clefs, vous devrez reconnecter vos comptes {{ credentials.platform|title }}</li>
+                            <li>Laissez les champs vides pour ne pas modifier les valeurs existantes</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Form -->
+        <div class="bg-white dark:bg-gray-800 shadow rounded-lg">
+            <div class="px-6 py-8">
+                {{ form_start(form, {'attr': {'class': 'space-y-6'}}) }}
+
+                <!-- Client ID -->
+                <div>
+                    {{ form_label(form.clientId, null, {'label_attr': {'class': 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2'}}) }}
+                    {{ form_widget(form.clientId, {'attr': {'class': 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white'}}) }}
+                    {% if form.clientId.vars.help %}
+                        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ form.clientId.vars.help }}</p>
+                    {% endif %}
+                    {{ form_errors(form.clientId, {'error_attr': {'class': 'text-red-600 dark:text-red-400 text-sm mt-1'}}) }}
+                    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                        Valeur actuelle : {{ credentials.clientId[:8] }}...
+                    </p>
+                </div>
+
+                <!-- Client Secret -->
+                <div>
+                    {{ form_label(form.clientSecret, null, {'label_attr': {'class': 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2'}}) }}
+                    {{ form_widget(form.clientSecret, {'attr': {'class': 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white', 'placeholder': 'Laisser vide pour ne pas modifier'}}) }}
+                    {% if form.clientSecret.vars.help %}
+                        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ form.clientSecret.vars.help }}</p>
+                    {% endif %}
+                    {{ form_errors(form.clientSecret, {'error_attr': {'class': 'text-red-600 dark:text-red-400 text-sm mt-1'}}) }}
+                    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                        Configuré et crypté
+                    </p>
+                </div>
+
+                <!-- User Agent (Reddit only) -->
+                {% if credentials.platform == 'reddit' %}
+                    <div>
+                        {{ form_label(form.userAgent, null, {'label_attr': {'class': 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2'}}) }}
+                        {{ form_widget(form.userAgent, {'attr': {'class': 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white'}}) }}
+                        {% if form.userAgent.vars.help %}
+                            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ form.userAgent.vars.help }}</p>
+                        {% endif %}
+                        {{ form_errors(form.userAgent, {'error_attr': {'class': 'text-red-600 dark:text-red-400 text-sm mt-1'}}) }}
+                    </div>
+                {% endif %}
+
+                <!-- Active -->
+                <div class="flex items-center">
+                    {{ form_widget(form.isActive, {'attr': {'class': 'h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded'}}) }}
+                    {{ form_label(form.isActive, null, {'label_attr': {'class': 'ml-2 block text-sm text-gray-700 dark:text-gray-300'}}) }}
+                    {{ form_errors(form.isActive, {'error_attr': {'class': 'text-red-600 dark:text-red-400 text-sm mt-1'}}) }}
+                </div>
+
+                <!-- Submit -->
+                <div class="flex justify-end space-x-3">
+                    <a href="{{ path('app_api_credentials_index') }}" 
+                       class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        Annuler
+                    </a>
+                    <button type="submit" 
+                            class="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        Mettre à jour
+                    </button>
+                </div>
+
+                {{ form_end(form) }}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

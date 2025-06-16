@@ -1,0 +1,147 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Configurer {{ platform|title }}{% endblock %}
+
+{% block body %}
+<div class="sm:ml-64">
+    <div class="p-4 min-h-screen bg-gray-50 dark:bg-gray-900">
+        
+        <!-- Navigation -->
+        <div class="mb-6">
+            <a href="{{ path('app_api_credentials_index') }}" 
+               class="text-blue-600 hover:text-blue-700 dark:text-blue-400 text-sm font-medium">
+                ← Retour aux clefs API
+            </a>
+        </div>
+
+        <!-- Page Header -->
+        <div class="mb-6">
+            <div class="flex items-center space-x-3 mb-2">
+                <span class="text-3xl">
+                    {% if platform == 'reddit' %}📱{% elseif platform == 'twitter' %}🐦{% else %}🔧{% endif %}
+                </span>
+                <h1 class="text-3xl font-bold text-gray-900 dark:text-white">
+                    Configurer {{ platform|title }}
+                </h1>
+            </div>
+            <p class="text-gray-600 dark:text-gray-400">
+                Renseignez vos clefs API {{ platform|title }} pour pouvoir publier sur cette plateforme
+            </p>
+        </div>
+
+        <!-- Alert Messages -->
+        {% for message in app.flashes('success') %}
+            <div class="flex items-center p-4 mb-4 text-sm text-green-800 border border-green-300 rounded-lg bg-green-50">
+                <svg class="flex-shrink-0 inline w-4 h-4 me-3" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5ZM9.5 4a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3ZM12 15H8a1 1 0 0 1 0-2h1v-3H8a1 1 0 0 1 0-2h2a1 1 0 0 1 1 1v4h1a1 1 0 0 1 0 2Z"/>
+                </svg>
+                <span>{{ message }}</span>
+            </div>
+        {% endfor %}
+
+        {% for message in app.flashes('error') %}
+            <div class="flex items-center p-4 mb-4 text-sm text-red-800 border border-red-300 rounded-lg bg-red-50">
+                <svg class="flex-shrink-0 inline w-4 h-4 me-3" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5ZM9.5 4a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3ZM12 15H8a1 1 0 0 1 0-2h1v-3H8a1 1 0 0 1 0-2h2a1 1 0 0 1 1 1v4h1a1 1 0 0 1 0 2Z"/>
+                </svg>
+                <span>{{ message }}</span>
+            </div>
+        {% endfor %}
+
+        <!-- Help Section -->
+        <div class="bg-blue-50 dark:bg-blue-900 border border-blue-200 dark:border-blue-800 rounded-lg p-6 mb-6">
+            <div class="flex">
+                <div class="flex-shrink-0">
+                    <svg class="h-5 w-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                    </svg>
+                </div>
+                <div class="ml-3">
+                    <h3 class="text-sm font-medium text-blue-800 dark:text-blue-200">
+                        Comment obtenir vos clefs {{ platform|title }} ?
+                    </h3>
+                    <div class="mt-2 text-sm text-blue-700 dark:text-blue-300">
+                        {% if platform == 'reddit' %}
+                            <ol class="list-decimal list-inside space-y-1">
+                                <li>Allez sur <a href="https://www.reddit.com/prefs/apps" target="_blank" class="underline font-medium">reddit.com/prefs/apps</a></li>
+                                <li>Cliquez sur "Create App" ou "Create Another App"</li>
+                                <li>Choisissez "web app" comme type d'application</li>
+                                <li>Utilisez comme redirect URI : <code class="bg-blue-100 dark:bg-blue-800 px-1 rounded">{{ url('reddit_callback') }}</code></li>
+                                <li>Une fois créée, notez le "Client ID" (sous le nom de l'app) et le "Client Secret"</li>
+                            </ol>
+                        {% elseif platform == 'twitter' %}
+                            <ol class="list-decimal list-inside space-y-1">
+                                <li>Créez un compte développeur sur <a href="https://developer.twitter.com" target="_blank" class="underline font-medium">developer.twitter.com</a></li>
+                                <li>Créez une nouvelle application</li>
+                                <li>Dans les paramètres, notez votre "API Key" et "API Secret Key"</li>
+                                <li>Activez l'authentification OAuth 1.0a</li>
+                            </ol>
+                        {% endif %}
+                        <p class="mt-2 font-medium">⚠️ Gardez ces clefs secrètes et ne les partagez jamais !</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Form -->
+        <div class="bg-white dark:bg-gray-800 shadow rounded-lg">
+            <div class="px-6 py-8">
+                {{ form_start(form, {'attr': {'class': 'space-y-6'}}) }}
+
+                <!-- Client ID -->
+                <div>
+                    {{ form_label(form.clientId, null, {'label_attr': {'class': 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2'}}) }}
+                    {{ form_widget(form.clientId, {'attr': {'class': 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white'}}) }}
+                    {% if form.clientId.vars.help %}
+                        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ form.clientId.vars.help }}</p>
+                    {% endif %}
+                    {{ form_errors(form.clientId, {'error_attr': {'class': 'text-red-600 dark:text-red-400 text-sm mt-1'}}) }}
+                </div>
+
+                <!-- Client Secret -->
+                <div>
+                    {{ form_label(form.clientSecret, null, {'label_attr': {'class': 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2'}}) }}
+                    {{ form_widget(form.clientSecret, {'attr': {'class': 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white'}}) }}
+                    {% if form.clientSecret.vars.help %}
+                        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ form.clientSecret.vars.help }}</p>
+                    {% endif %}
+                    {{ form_errors(form.clientSecret, {'error_attr': {'class': 'text-red-600 dark:text-red-400 text-sm mt-1'}}) }}
+                </div>
+
+                <!-- User Agent (Reddit only) -->
+                {% if platform == 'reddit' %}
+                    <div>
+                        {{ form_label(form.userAgent, null, {'label_attr': {'class': 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2'}}) }}
+                        {{ form_widget(form.userAgent, {'attr': {'class': 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white'}}) }}
+                        {% if form.userAgent.vars.help %}
+                            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ form.userAgent.vars.help }}</p>
+                        {% endif %}
+                        {{ form_errors(form.userAgent, {'error_attr': {'class': 'text-red-600 dark:text-red-400 text-sm mt-1'}}) }}
+                    </div>
+                {% endif %}
+
+                <!-- Active -->
+                <div class="flex items-center">
+                    {{ form_widget(form.isActive, {'attr': {'class': 'h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded'}}) }}
+                    {{ form_label(form.isActive, null, {'label_attr': {'class': 'ml-2 block text-sm text-gray-700 dark:text-gray-300'}}) }}
+                    {{ form_errors(form.isActive, {'error_attr': {'class': 'text-red-600 dark:text-red-400 text-sm mt-1'}}) }}
+                </div>
+
+                <!-- Submit -->
+                <div class="flex justify-end space-x-3">
+                    <a href="{{ path('app_api_credentials_index') }}" 
+                       class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        Annuler
+                    </a>
+                    <button type="submit" 
+                            class="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        Enregistrer les clefs
+                    </button>
+                </div>
+
+                {{ form_end(form) }}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

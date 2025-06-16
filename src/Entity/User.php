@@ -51,6 +51,12 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     private ?string $timezone = null;
 
     /**
+     * @var Collection<int, ApiCredentials>
+     */
+    #[ORM\OneToMany(targetEntity: ApiCredentials::class, mappedBy: 'user', orphanRemoval: true)]
+    private Collection $apiCredentials;
+
+    /**
      * @var Collection<int, SocialAccount>
      */
     #[ORM\OneToMany(targetEntity: SocialAccount::class, mappedBy: 'user', orphanRemoval: true)]
@@ -74,6 +80,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         $this->posts = new ArrayCollection();
         $this->destinations = new ArrayCollection();
         $this->createdAt = new \DateTimeImmutable();
+        $this->apiCredentials = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -332,5 +339,47 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
             fn(Destination $destination) => 
                 $destination->getSocialAccount()?->getPlatform() === $platform && $destination->isActive()
         );
+    }
+
+    /**
+     * @return Collection<int, ApiCredentials>
+     */
+    public function getApiCredentials(): Collection
+    {
+        return $this->apiCredentials;
+    }
+
+    public function addApiCredential(ApiCredentials $apiCredential): static
+    {
+        if (!$this->apiCredentials->contains($apiCredential)) {
+            $this->apiCredentials->add($apiCredential);
+            $apiCredential->setUser($this);
+        }
+
+        return $this;
+    }
+
+    public function removeApiCredential(ApiCredentials $apiCredential): static
+    {
+        if ($this->apiCredentials->removeElement($apiCredential)) {
+            if ($apiCredential->getUser() === $this) {
+                $apiCredential->setUser(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * Vérifie si l'utilisateur a des clefs configurées pour une plateforme
+     */
+    public function hasCredentialsForPlatform(string $platform): bool
+    {
+        foreach ($this->apiCredentials as $credential) {
+            if ($credential->getPlatform() === $platform && $credential->isActive()) {
+                return true;
+            }
+        }
+        return false;
     }
 }

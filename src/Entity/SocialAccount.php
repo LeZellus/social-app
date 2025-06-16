@@ -46,9 +46,16 @@ class SocialAccount
     #[ORM\OneToMany(targetEntity: PostPublication::class, mappedBy: 'socialAccount', orphanRemoval: true)]
     private Collection $postPublications;
 
+    /**
+     * @var Collection<int, Destination>
+     */
+    #[ORM\OneToMany(targetEntity: Destination::class, mappedBy: 'socialAccount', orphanRemoval: true)]
+    private Collection $destinations;
+
     public function __construct()
     {
         $this->postPublications = new ArrayCollection();
+        $this->destinations = new ArrayCollection();
         $this->createdAt = new \DateTimeImmutable();
     }
 
@@ -145,11 +152,6 @@ class SocialAccount
         return $this;
     }
 
-    public function isTokenValid(): bool
-    {
-        return $this->tokenExpiresAt === null || $this->tokenExpiresAt > new \DateTimeImmutable();
-    }
-
     /**
      * @return Collection<int, PostPublication>
      */
@@ -164,6 +166,7 @@ class SocialAccount
             $this->postPublications->add($postPublication);
             $postPublication->setSocialAccount($this);
         }
+
         return $this;
     }
 
@@ -174,6 +177,36 @@ class SocialAccount
                 $postPublication->setSocialAccount(null);
             }
         }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Destination>
+     */
+    public function getDestinations(): Collection
+    {
+        return $this->destinations;
+    }
+
+    public function addDestination(Destination $destination): static
+    {
+        if (!$this->destinations->contains($destination)) {
+            $this->destinations->add($destination);
+            $destination->setSocialAccount($this);
+        }
+
+        return $this;
+    }
+
+    public function removeDestination(Destination $destination): static
+    {
+        if ($this->destinations->removeElement($destination)) {
+            if ($destination->getSocialAccount() === $this) {
+                $destination->setSocialAccount(null);
+            }
+        }
+
         return $this;
     }
 }

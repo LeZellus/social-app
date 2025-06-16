@@ -49,32 +49,53 @@ class RedditApiService
 
     public function handleCallback(string $code, string $state, string $redirectUri, User $user): void
     {
+        error_log("=== DEBUT CALLBACK REDDIT ===");
+        
         $credentials = $this->getUserCredentials($user, 'reddit');
         if (!$credentials) {
+            error_log("ERREUR: Aucune clef Reddit configurée");
             throw new \Exception('Aucune clef Reddit configurée');
         }
+        error_log("✓ Clefs récupérées: " . $credentials->getClientId());
 
         $session = $this->requestStack->getSession();
         $storedState = $session->get('reddit_oauth_state');
 
         if ($state !== $storedState) {
+            error_log("ERREUR: État OAuth invalide - reçu: $state, attendu: $storedState");
             throw new \Exception('État OAuth invalide');
         }
+        error_log("✓ État OAuth validé");
 
         // Échanger le code contre un token
-        $tokenData = $this->exchangeCodeForToken($code, $redirectUri, $credentials);
+        try {
+            $tokenData = $this->exchangeCodeForToken($code, $redirectUri, $credentials);
+            error_log("✓ Token récupéré: " . json_encode(array_keys($tokenData)));
+        } catch (\Exception $e) {
+            error_log("ERREUR échange token: " . $e->getMessage());
+            throw $e;
+        }
         
         // Récupérer les infos utilisateur
-        $userInfo = $this->getUserInfo($tokenData['access_token'], $credentials);
+        try {
+            $userInfo = $this->getUserInfo($tokenData['access_token'], $credentials);
+            error_log("✓ Infos utilisateur: " . json_encode($userInfo));
+        } catch (\Exception $e) {
+            error_log("ERREUR infos utilisateur: " . $e->getMessage());
+            throw $e;
+        }
         
         // Créer ou mettre à jour le SocialAccount
         $socialAccount = $this->socialAccountRepository->findByUserAndPlatform($user, 'reddit');
         
         if (!$socialAccount) {
+            error_log("Création d'un nouveau SocialAccount");
             $socialAccount = new SocialAccount();
             $socialAccount->setUser($user);
             $socialAccount->setPlatform('reddit');
             $this->entityManager->persist($socialAccount);
+        } else {
+            error_log("Mise à jour du SocialAccount existant");
         }
 
         $socialAccount->setAccountName($userInfo['name']);
@@ -87,11 +108,19 @@ class RedditApiService
             $socialAccount->setTokenExpiresAt($expiresAt);
         }
 
-        $this->entityManager->flush();
+        try {
+            $this->entityManager->flush();
+            error_log("✓ SocialAccount sauvegardé avec succès - ID: " . $socialAccount->getId());
+        } catch (\Exception $e) {
+            error_log("ERREUR sauvegarde: " . $e->getMessage());
+            throw $e;
+        }
 
         $session->set('reddit_access_token', $tokenData['access_token']);
         $session->set('reddit_token_expiry', time() + ($tokenData['expires_in'] ?? 3600));
         $session->remove('reddit_oauth_state');
+        
+        error_log("=== FIN CALLBACK REDDIT ===");
     }
 
     private function exchangeCodeForToken(string $code, string $redirectUri, ApiCredentials $credentials): array
