@@ -2,9 +2,6 @@
 
 namespace App\Form;
 
-use App\Entity\Reddit;
-use App\Repository\RedditRepository;
-use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\SubmitType;
@@ -14,18 +11,15 @@ use Symfony\Component\Form\Extension\Core\Type\UrlType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 use Symfony\Component\Validator\Constraints\NotBlank;
-use Symfony\Component\Validator\Constraints\Url;
 
 class RedditPostType extends AbstractType
 {
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
         $builder
-            ->add('subreddit', EntityType::class, [
-                'class' => Reddit::class,
-                'choice_label' => 'name', // Adaptez selon le nom de votre propriété
-                'choice_value' => 'name', // Adaptez selon le nom de votre propriété
+            ->add('subreddit', ChoiceType::class, [
                 'label' => 'Subreddit',
+                'choices' => $options['subreddit_choices'],
                 'placeholder' => 'Choisir un subreddit...',
                 'constraints' => [new NotBlank(message: 'Le subreddit est requis')],
                 'attr' => ['class' => 'form-select'],
@@ -43,21 +37,16 @@ class RedditPostType extends AbstractType
                 ],
                 'expanded' => true,
                 'data' => 'text',
-                'attr' => ['class' => 'form-check-inline'],
             ])
             ->add('text', TextareaType::class, [
                 'label' => 'Contenu',
                 'required' => false,
-                'attr' => [
-                    'rows' => 5,
-                    'placeholder' => 'Écrivez votre contenu ici...'
-                ],
+                'attr' => ['rows' => 5, 'placeholder' => 'Écrivez votre contenu ici...'],
             ])
             ->add('url', UrlType::class, [
                 'label' => 'URL',
                 'required' => false,
                 'attr' => ['placeholder' => 'https://example.com'],
-                'constraints' => [new Url(message: 'URL invalide')],
             ])
             ->add('submit', SubmitType::class, [
                 'label' => 'Poster sur Reddit',
@@ -67,6 +56,8 @@ class RedditPostType extends AbstractType
 
     public function configureOptions(OptionsResolver $resolver): void
     {
-        $resolver->setDefaults([]);
+        $resolver->setDefaults([
+            'subreddit_choices' => [],
+        ]);
     }
 }
