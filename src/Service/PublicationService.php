@@ -166,14 +166,15 @@ class PublicationService
         $subreddit = $publication->getSubreddit();
         $title = $publication->getAdaptedTitle();
         $content = $publication->getAdaptedContent();
+        $account = $publication->getSocialAccount();
 
         if ($publication->getPost()->getMediaFiles()) {
             // Post avec lien/média
             $mediaUrl = $publication->getPost()->getMediaFiles()[0] ?? null;
-            $response = $this->redditApi->postLink($subreddit, $title, $mediaUrl);
+            $response = $this->redditApi->submitPost($title, $mediaUrl, $subreddit, $account);
         } else {
             // Post texte
-            $response = $this->redditApi->postText($subreddit, $title, $content);
+            $response = $this->redditApi->submitPost($title, $content, $subreddit, $account);
         }
 
         if (isset($response['json']['data']['name'])) {

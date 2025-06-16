@@ -141,9 +141,20 @@ class PostController extends AbstractController
     {
         $this->denyAccessUnlessGranted('edit', $post);
 
-        if ($post->getStatus() === 'draft') {
-            // Publier sur toutes les destinations actives de l'utilisateur
-            $publications = $this->publicationService->createPublicationsForAllDestinations($post);
+        if ($post->getStatus() !== 'draft') {
+            $this->addFlash('error', 'Seuls les brouillons peuvent être publiés de cette façon.');
+            return $this->redirectToRoute('app_posts');
+        }
+
+        try {
+            // Récupérer les publications existantes pour ce post ou créer des nouvelles
+            if ($post->getPostPublications()->isEmpty()) {
+                // Pas de publications existantes, créer pour toutes les destinations actives
+                $publications = $this->publicationService->createPublicationsForAllDestinations($post);
+            } else {
+                // Utiliser les publications existantes
+                $publications = $post->getPostPublications()->toArray();
+            }
             
             $results = [];
             foreach ($publications as $publication) {
@@ -166,8 +177,8 @@ class PostController extends AbstractController
             } else {
                 $this->addFlash('error', 'Échec de la publication sur toutes les destinations.');
             }
-        } else {
-            $this->addFlash('error', 'Ce post ne peut pas être publié.');
+        } catch (\Exception $e) {
+            $this->addFlash('error', 'Erreur lors de la publication : ' . $e->getMessage());
         }
 
         return $this->redirectToRoute('app_posts');

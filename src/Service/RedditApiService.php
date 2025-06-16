@@ -67,53 +67,10 @@ class RedditApiService
         
         error_log("User: " . $userInfo['name'] . ", Token reçu");
 
-        // IMPORTANT: Vérifier d'abord si un compte existe
-        $socialAccount = $this->socialAccountRepository->findOneBy([
-            'user' => $user,
-            'platform' => 'reddit'
-        ]);
-
-        if ($socialAccount) {
-            error_log("Mise à jour du compte existant ID: " . $socialAccount->getId());
-            
-            // Mettre à jour le compte existant
-            $socialAccount->setAccountName($userInfo['name']);
-            $socialAccount->setAccessToken($tokenData['access_token']);
-            $socialAccount->setRefreshToken($tokenData['refresh_token'] ?? null);
-            $socialAccount->setIsActive(true);
-            
-            if (isset($tokenData['expires_in'])) {
-                $expiresAt = new \DateTimeImmutable('+' . $tokenData['expires_in'] . ' seconds');
-                $socialAccount->setTokenExpiresAt($expiresAt);
-            }
-        } else {
-            error_log("Création d'un nouveau compte Reddit");
-            
-            // Créer un nouveau compte
-            $socialAccount = new SocialAccount();
-            $socialAccount->setUser($user);
-            $socialAccount->setPlatform('reddit');
-            $socialAccount->setAccountName($userInfo['name']);
-            $socialAccount->setAccessToken($tokenData['access_token']);
-            $socialAccount->setRefreshToken($tokenData['refresh_token'] ?? null);
-            $socialAccount->setIsActive(true);
-            
-            if (isset($tokenData['expires_in'])) {
-                $expiresAt = new \DateTimeImmutable('+' . $tokenData['expires_in'] . ' seconds');
-                $socialAccount->setTokenExpiresAt($expiresAt);
-            }
-            
-            $this->entityManager->persist($socialAccount);
-        }
-
-        // Sauvegarder
-        try {
-            $this->entityManager->flush();
-            error_log("✅ Compte sauvegardé - ID: " . $socialAccount->getId());
-        } catch (\Exception $e) {
-            error_log("❌ Erreur flush: " . $e->getMessage());
-            throw $e;
-        }
+        // UTILISER LA MÉTHODE SÉCURISÉE
+        $socialAccount = $this->safeSaveSocialAccount($user, $userInfo, $tokenData);
+        
+        error_log("✅ Compte sauvegardé - ID: " . $socialAccount->getId());
         
         // Nettoyer la session
         $session->set('reddit_access_token', $tokenData['access_token']);
@@ -187,68 +144,36 @@ class RedditApiService
 
     private function safeSaveSocialAccount(User $user, array $userInfo, array $tokenData): SocialAccount
     {
-        // Commencer une transaction
-        $this->entityManager->beginTransaction();
+        // UTILISER findByUserAndPlatformIgnoreStatus pour trouver même les comptes inactifs
+        $socialAccount = $this->socialAccountRepository->findByUserAndPlatformIgnoreStatus($user, 'reddit');
+
+        if (!$socialAccount) {
+            error_log("Création d'un nouveau compte Reddit");
+            $socialAccount = new SocialAccount();
+            $socialAccount->setUser($user);
+            $socialAccount->setPlatform('reddit');
+            $this->entityManager->persist($socialAccount);
+        } else {
+            error_log("Mise à jour du compte existant ID: " . $socialAccount->getId());
+        }
+
+        // Mettre à jour les données
+        $socialAccount->setAccountName($userInfo['name']);
+        $socialAccount->setAccessToken($tokenData['access_token']);
+        $socialAccount->setRefreshToken($tokenData['refresh_token'] ?? null);
+        $socialAccount->setIsActive(true);
         
+        if (isset($tokenData['expires_in'])) {
+            $expiresAt = new \DateTimeImmutable('+' . $tokenData['expires_in'] . ' seconds');
+            $socialAccount->setTokenExpiresAt($expiresAt);
+        }
+
         try {
-            // Vérifier si un compte existe déjà
-            $socialAccount = $this->socialAccountRepository->findOneBy([
-                'user' => $user,
-                'platform' => 'reddit'
-            ]);
-
-            if (!$socialAccount) {
-                $socialAccount = new SocialAccount();
-                $socialAccount->setUser($user);
-                $socialAccount->setPlatform('reddit');
-                $this->entityManager->persist($socialAccount);
-            }
-
-            // Mettre à jour les données
-            $socialAccount->setAccountName($userInfo['name']);
-            $socialAccount->setAccessToken($tokenData['access_token']);
-            $socialAccount->setRefreshToken($tokenData['refresh_token'] ?? null);
-            $socialAccount->setIsActive(true);
-            
-            if (isset($tokenData['expires_in'])) {
-                $expiresAt = new \DateTimeImmutable('+' . $tokenData['expires_in'] . ' seconds');
-                $socialAccount->setTokenExpiresAt($expiresAt);
-            }
-
             $this->entityManager->flush();
-            $this->entityManager->commit();
-            
+            error_log("✅ Compte sauvegardé - ID: " . $socialAccount->getId());
             return $socialAccount;
-            
         } catch (\Exception $e) {
-            $this->entityManager->rollback();
-            
-            // Si contrainte unique, récupérer le compte existant
-            if (strpos($e->getMessage(), 'UNIQ') !== false || 
-                strpos($e->getMessage(), 'Duplicate') !== false) {
-                
-                $existingAccount = $this->socialAccountRepository->findOneBy([
-                    'user' => $user,
-                    'platform' => 'reddit'
-                ]);
-                
-                if ($existingAccount) {
-                    // Mise à jour directe sans transaction
-                    $existingAccount->setAccountName($userInfo['name']);
-                    $existingAccount->setAccessToken($tokenData['access_token']);
-                    $existingAccount->setRefreshToken($tokenData['refresh_token'] ?? null);
-                    $existingAccount->setIsActive(true);
-                    
-                    if (isset($tokenData['expires_in'])) {
-                        $expiresAt = new \DateTimeImmutable('+' . $tokenData['expires_in'] . ' seconds');
-                        $existingAccount->setTokenExpiresAt($expiresAt);
-                    }
-                    
-                    $this->entityManager->flush();
-                    return $existingAccount;
-                }
-            }
-            
+            error_log("❌ Erreur flush: " . $e->getMessage());
             throw $e;
         }
     }

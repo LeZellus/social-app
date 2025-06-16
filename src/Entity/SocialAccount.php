@@ -26,10 +26,10 @@ class SocialAccount
     #[ORM\Column(length: 255)]
     private ?string $accountName = null; // nom d'utilisateur sur la plateforme
 
-    #[ORM\Column(length: 255, nullable: true)]
+    #[ORM\Column(type: 'text', nullable: true)]
     private ?string $accessToken = null;
 
-    #[ORM\Column(length: 255, nullable: true)]
+    #[ORM\Column(type: 'text', nullable: true)]
     private ?string $refreshToken = null;
 
     #[ORM\Column(nullable: true)]
