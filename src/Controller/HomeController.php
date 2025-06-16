@@ -2,25 +2,52 @@
 
 namespace App\Controller;
 
+use App\Repository\DestinationRepository;
+use App\Repository\PostPublicationRepository;
+use App\Repository\PostRepository;
+use App\Repository\SocialAccountRepository;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
 
-final class HomeController extends AbstractController
+class HomeController extends AbstractController
 {
     #[Route('/', name: 'app_home')]
-    public function index(): Response
-    {
-        return $this->render('home/index.html.twig', [
-            'controller_name' => 'HomeController',
-        ]);
-    }
+    #[IsGranted('ROLE_USER')]
+    public function index(
+        DestinationRepository $destinationRepository,
+        PostRepository $postRepository,
+        PostPublicationRepository $publicationRepository,
+        SocialAccountRepository $accountRepository
+    ): Response {
+        $user = $this->getUser();
 
-    #[Route('/reddit/{subreddit}', name: 'reddit_posts')]
-    public function redditPosts(string $subreddit, RedditApiService $reddit): Response
-    {
-        $posts = $reddit->getSubredditPosts($subreddit, 'hot', 10);
+        // Récupérer les statistiques
+        $destinations = $destinationRepository->findBy(['user' => $user, 'isActive' => true]);
+        $recentPosts = $postRepository->findBy(['user' => $user], ['createdAt' => 'DESC'], 5);
         
-        return $this->json($posts);
+        $publishedCount = $publicationRepository->count([
+            'post' => $postRepository->findBy(['user' => $user]),
+            'status' => 'published'
+        ]);
+        
+        $pendingCount = $publicationRepository->count([
+            'post' => $postRepository->findBy(['user' => $user]),
+            'status' => 'pending'
+        ]);
+        
+        $connectedAccounts = $accountRepository->count([
+            'user' => $user,
+            'isActive' => true
+        ]);
+
+        return $this->render('home/index.html.twig', [
+            'destinations' => $destinations,
+            'recentPosts' => $recentPosts,
+            'publishedCount' => $publishedCount,
+            'pendingCount' => $pendingCount,
+            'connectedAccounts' => $connectedAccounts,
+        ]);
     }
 }

@@ -32,7 +32,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column]
     private ?\DateTimeImmutable $createdAt = null;
 
-    // ✅ Nouveaux champs profil
     #[ORM\Column(length: 100, nullable: true)]
     private ?string $firstName = null;
 
@@ -63,14 +62,20 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\OneToMany(targetEntity: Post::class, mappedBy: 'user', orphanRemoval: true)]
     private Collection $posts;
 
+    /**
+     * @var Collection<int, Destination>
+     */
+    #[ORM\OneToMany(targetEntity: Destination::class, mappedBy: 'user', orphanRemoval: true)]
+    private Collection $destinations;
+
     public function __construct()
     {
         $this->socialAccounts = new ArrayCollection();
         $this->posts = new ArrayCollection();
+        $this->destinations = new ArrayCollection();
         $this->createdAt = new \DateTimeImmutable();
     }
 
-    // Getters/Setters existants
     public function getId(): ?int
     {
         return $this->id;
@@ -127,12 +132,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this;
     }
 
-    public function eraseCredentials(): void
-    {
-        // If you store any temporary, sensitive data on the user, clear it here
-    }
-
-    // ✅ Nouveaux getters/setters
     public function getFirstName(): ?string
     {
         return $this->firstName;
@@ -199,14 +198,19 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this;
     }
 
+    public function eraseCredentials(): void
+    {
+        // If you store any temporary, sensitive data on the user, clear it here
+    }
+
     public function getDisplayName(): string
     {
-        if ($this->pseudo) {
-            return $this->pseudo;
-        }
-        
         if ($this->firstName || $this->lastName) {
             return trim($this->firstName . ' ' . $this->lastName);
+        }
+        
+        if ($this->pseudo) {
+            return $this->pseudo;
         }
         
         return explode('@', $this->email)[0];
@@ -280,5 +284,53 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
             }
         }
         return $this;
+    }
+
+    /**
+     * @return Collection<int, Destination>
+     */
+    public function getDestinations(): Collection
+    {
+        return $this->destinations;
+    }
+
+    public function addDestination(Destination $destination): static
+    {
+        if (!$this->destinations->contains($destination)) {
+            $this->destinations->add($destination);
+            $destination->setUser($this);
+        }
+        return $this;
+    }
+
+    public function removeDestination(Destination $destination): static
+    {
+        if ($this->destinations->removeElement($destination)) {
+            if ($destination->getUser() === $this) {
+                $destination->setUser(null);
+            }
+        }
+        return $this;
+    }
+
+    /**
+     * Obtenir les destinations actives
+     */
+    public function getActiveDestinations(): Collection
+    {
+        return $this->destinations->filter(
+            fn(Destination $destination) => $destination->isActive()
+        );
+    }
+
+    /**
+     * Obtenir les destinations par plateforme
+     */
+    public function getDestinationsByPlatform(string $platform): Collection
+    {
+        return $this->destinations->filter(
+            fn(Destination $destination) => 
+                $destination->getSocialAccount()?->getPlatform() === $platform && $destination->isActive()
+        );
     }
 }

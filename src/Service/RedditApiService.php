@@ -1,23 +1,28 @@
 <?php
 
-declare(strict_types=1);
-
 namespace App\Service;
 
+use App\Entity\SocialAccount;
+use App\Entity\User;
+use App\Repository\SocialAccountRepository;
+use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 
-final readonly class RedditApiService
+class RedditApiService
 {
-    private const BASE_URL = 'https://www.reddit.com/api/v1';
     private const OAUTH_URL = 'https://oauth.reddit.com';
+    private const AUTH_URL = 'https://www.reddit.com/api/v1/authorize';
+    private const TOKEN_URL = 'https://www.reddit.com/api/v1/access_token';
 
     public function __construct(
-        private HttpClientInterface $httpClient,
-        private RequestStack $requestStack,
-        private string $clientId,
-        private string $clientSecret,
-        private string $userAgent = 'Symfony-App/1.0'
+        private readonly HttpClientInterface $httpClient,
+        private readonly RequestStack $requestStack,
+        private readonly EntityManagerInterface $entityManager,
+        private readonly SocialAccountRepository $socialAccountRepository,
+        private readonly string $clientId,
+        private readonly string $clientSecret,
+        private readonly string $userAgent
     ) {}
 
     public function getAuthorizationUrl(string $redirectUri): string
@@ -30,26 +35,63 @@ final readonly class RedditApiService
             'response_type' => 'code',
             'state' => $state,
             'redirect_uri' => $redirectUri,
-            'duration' => 'temporary',
-            'scope' => 'submit read',
+            'duration' => 'permanent',
+            'scope' => 'identity submit read'
         ]);
 
-        return self::BASE_URL . '/authorize?' . $params;
+        return self::AUTH_URL . '?' . $params;
     }
 
-    public function handleCallback(string $code, string $state, string $redirectUri): string
+    public function handleCallback(string $code, string $state, string $redirectUri, User $user): void
     {
-        $storedState = $this->requestStack->getSession()->get('reddit_oauth_state');
-        
+        $session = $this->requestStack->getSession();
+        $storedState = $session->get('reddit_oauth_state');
+
         if ($state !== $storedState) {
             throw new \Exception('État OAuth invalide');
         }
 
-        $response = $this->httpClient->request('POST', self::BASE_URL . '/access_token', [
-            'auth_basic' => [$this->clientId, $this->clientSecret],
+        // Échanger le code contre un token
+        $tokenData = $this->exchangeCodeForToken($code, $redirectUri);
+        
+        // Récupérer les infos utilisateur
+        $userInfo = $this->getUserInfo($tokenData['access_token']);
+        
+        // Créer ou mettre à jour le SocialAccount
+        $socialAccount = $this->socialAccountRepository->findByUserAndPlatform($user, 'reddit');
+        
+        if (!$socialAccount) {
+            $socialAccount = new SocialAccount();
+            $socialAccount->setUser($user);
+            $socialAccount->setPlatform('reddit');
+            $this->entityManager->persist($socialAccount);
+        }
+
+        $socialAccount->setAccountName($userInfo['name']);
+        $socialAccount->setAccessToken($tokenData['access_token']);
+        $socialAccount->setRefreshToken($tokenData['refresh_token'] ?? null);
+        $socialAccount->setIsActive(true);
+
+        if (isset($tokenData['expires_in'])) {
+            $expiresAt = new \DateTimeImmutable('+' . $tokenData['expires_in'] . ' seconds');
+            $socialAccount->setTokenExpiresAt($expiresAt);
+        }
+
+        $this->entityManager->flush();
+
+        // Stocker en session pour compatibilité
+        $session->set('reddit_access_token', $tokenData['access_token']);
+        $session->set('reddit_token_expiry', time() + ($tokenData['expires_in'] ?? 3600));
+        $session->remove('reddit_oauth_state');
+    }
+
+    private function exchangeCodeForToken(string $code, string $redirectUri): array
+    {
+        $response = $this->httpClient->request('POST', self::TOKEN_URL, [
             'headers' => [
-                'User-Agent' => $this->userAgent,
+                'Authorization' => 'Basic ' . base64_encode($this->clientId . ':' . $this->clientSecret),
                 'Content-Type' => 'application/x-www-form-urlencoded',
+                'User-Agent' => $this->userAgent,
             ],
             'body' => http_build_query([
                 'grant_type' => 'authorization_code',
@@ -58,34 +100,61 @@ final readonly class RedditApiService
             ]),
         ]);
 
-        $data = $response->toArray();
-        
-        $this->requestStack->getSession()->set('reddit_access_token', $data['access_token']);
-        $this->requestStack->getSession()->set('reddit_token_expiry', time() + $data['expires_in']);
-        
-        return $data['access_token'];
+        return $response->toArray();
     }
 
-    public function isConnected(): bool
+    private function getUserInfo(string $accessToken): array
     {
-        $token = $this->requestStack->getSession()->get('reddit_access_token');
-        $expiry = $this->requestStack->getSession()->get('reddit_token_expiry');
-        
-        return $token && $expiry && time() < $expiry;
+        $response = $this->httpClient->request('GET', self::OAUTH_URL . '/api/v1/me', [
+            'headers' => [
+                'Authorization' => 'Bearer ' . $accessToken,
+                'User-Agent' => $this->userAgent,
+            ],
+        ]);
+
+        return $response->toArray();
     }
 
-    private function getAccessToken(): string
+    public function isConnected(User $user = null): bool
     {
-        if (!$this->isConnected()) {
-            throw new \Exception('Non connecté à Reddit');
+        if ($user) {
+            $account = $this->socialAccountRepository->findByUserAndPlatform($user, 'reddit');
+            return $account && $account->isActive() && $account->isTokenValid();
         }
 
-        return $this->requestStack->getSession()->get('reddit_access_token');
+        // Fallback pour compatibilité
+        $session = $this->requestStack->getSession();
+        $token = $session->get('reddit_access_token');
+        $expiry = $session->get('reddit_token_expiry', 0);
+        
+        return $token && time() < $expiry;
     }
 
-    public function postText(string $subreddit, string $title, string $text): array
+    private function getAccessToken(User $user = null): string
     {
-        $token = $this->getAccessToken();
+        if ($user) {
+            $account = $this->socialAccountRepository->findByUserAndPlatform($user, 'reddit');
+            if ($account && $account->isTokenValid()) {
+                return $account->getAccessToken();
+            }
+            throw new \Exception('Token Reddit invalide ou expiré');
+        }
+
+        // Fallback pour compatibilité
+        $session = $this->requestStack->getSession();
+        $token = $session->get('reddit_access_token');
+        $expiry = $session->get('reddit_token_expiry', 0);
+
+        if (!$token || time() >= $expiry) {
+            throw new \Exception('Token Reddit manquant ou expiré');
+        }
+
+        return $token;
+    }
+
+    public function postText(string $subreddit, string $title, string $text, User $user = null): array
+    {
+        $token = $this->getAccessToken($user);
 
         $response = $this->httpClient->request('POST', self::OAUTH_URL . '/api/submit', [
             'headers' => [
@@ -104,9 +173,9 @@ final readonly class RedditApiService
         return $response->toArray();
     }
 
-    public function postLink(string $subreddit, string $title, string $url): array
+    public function postLink(string $subreddit, string $title, string $url, User $user = null): array
     {
-        $token = $this->getAccessToken();
+        $token = $this->getAccessToken($user);
 
         $response = $this->httpClient->request('POST', self::OAUTH_URL . '/api/submit', [
             'headers' => [
@@ -135,10 +204,22 @@ final readonly class RedditApiService
         return $response->toArray();
     }
 
-    public function disconnect(): void
+    public function disconnect(User $user = null): void
     {
-        $this->requestStack->getSession()->remove('reddit_access_token');
-        $this->requestStack->getSession()->remove('reddit_token_expiry');
-        $this->requestStack->getSession()->remove('reddit_oauth_state');
+        if ($user) {
+            $account = $this->socialAccountRepository->findByUserAndPlatform($user, 'reddit');
+            if ($account) {
+                $account->setIsActive(false);
+                $account->setAccessToken(null);
+                $account->setRefreshToken(null);
+                $this->entityManager->flush();
+            }
+        }
+
+        // Nettoyer la session
+        $session = $this->requestStack->getSession();
+        $session->remove('reddit_access_token');
+        $session->remove('reddit_token_expiry');
+        $session->remove('reddit_oauth_state');
     }
 }

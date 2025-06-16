@@ -97,31 +97,55 @@ class RedditController extends AbstractController
     #[Route('/callback', name: 'callback')]
     public function callback(Request $request): Response
     {
-        // Debug - vérifiez que la route est bien atteinte
-        dump('Callback atteint !');
-        dump($request->query->all());
-        
         $code = $request->query->get('code');
         $state = $request->query->get('state');
         
         if (!$code || !$state) {
             $this->addFlash('error', 'Code ou state manquant');
-            return $this->redirectToRoute('reddit_home');
+            return $this->redirectToRoute('app_social_accounts');
         }
 
         try {
             $redirectUri = $request->getSchemeAndHttpHost() . $this->generateUrl('reddit_callback');
-            dump('Redirect URI utilisé: ' . $redirectUri);
+            $this->redditApi->handleCallback($code, $state, $redirectUri, $this->getUser());
             
-            $this->redditApi->handleCallback($code, $state, $redirectUri);
-            
-            $this->addFlash('success', 'Connecté à Reddit avec succès !');
+            $this->addFlash('success', 'Compte Reddit connecté avec succès !');
         } catch (\Exception $e) {
-            dump('Erreur détaillée: ' . $e->getMessage());
             $this->addFlash('error', 'Erreur : ' . $e->getMessage());
         }
 
-        return $this->redirectToRoute('reddit_home');
+        return $this->redirectToRoute('app_social_accounts');
+    }
+
+    #[Route('/subreddit/add', name: 'add_subreddit')]
+    public function addSubreddit(Request $request, RedditRepository $redditRepository, EntityManagerInterface $em): Response
+    {
+        $reddit = new Reddit(); // Remplace par ton entité existante
+        
+        $form = $this->createForm(SubredditType::class, $reddit);
+        $form->handleRequest($request);
+
+        if ($form->isSubmitted() && $form->isValid()) {
+            // Nettoyer le nom (enlever r/ si présent)
+            $name = ltrim($reddit->getName(), 'r/');
+            $reddit->setName($name);
+            
+            // Vérifier si existe déjà
+            if ($redditRepository->findOneBy(['name' => $name])) {
+                $this->addFlash('error', 'Ce subreddit est déjà dans votre liste');
+                return $this->render('reddit/add_subreddit.html.twig', ['form' => $form]);
+            }
+            
+            $em->persist($reddit);
+            $em->flush();
+            
+            $this->addFlash('success', 'Subreddit r/' . $name . ' ajouté avec succès');
+            return $this->redirectToRoute('reddit_home');
+        }
+
+        return $this->render('reddit/add_subreddit.html.twig', [
+            'form' => $form,
+        ]);
     }
 
     #[Route('/disconnect', name: 'disconnect')]

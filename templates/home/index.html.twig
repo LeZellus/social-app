@@ -1,20 +1,217 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Hello HomeController!{% endblock %}
+{% block title %}Dashboard{% endblock %}
 
 {% block body %}
-<style>
-    .example-wrapper { margin: 1em auto; max-width: 800px; width: 95%; font: 18px/1.5 sans-serif; }
-    .example-wrapper code { background: #F5F5F5; padding: 2px 6px; }
-</style>
+<div class="container mx-auto px-4 py-6">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
+        <a href="{{ path('app_post_new') }}" 
+           class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium">
+            + Nouveau Post
+        </a>
+    </div>
 
-<div class="example-wrapper">
-    <h1>Hello! ✅</h1>
+    <!-- Quick Stats -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+            <div class="flex items-center">
+                <div class="p-2 bg-blue-100 dark:bg-blue-900 rounded-lg">
+                    <svg class="w-6 h-6 text-blue-600 dark:text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-gray-600 dark:text-gray-400">Posts publiés</p>
+                    <p class="text-2xl font-semibold text-gray-900 dark:text-white">{{ publishedCount ?? 0 }}</p>
+                </div>
+            </div>
+        </div>
 
-    This friendly message is coming from:
-    <ul>
-        <li>Your controller at <code>C:/Users/mathe/Documents/Dev/social-app/src/Controller/HomeController.php</code></li>
-        <li>Your template at <code>C:/Users/mathe/Documents/Dev/social-app/templates/home/index.html.twig</code></li>
-    </ul>
+        <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+            <div class="flex items-center">
+                <div class="p-2 bg-yellow-100 dark:bg-yellow-900 rounded-lg">
+                    <svg class="w-6 h-6 text-yellow-600 dark:text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M10 2L3 7v11a2 2 0 002 2h10a2 2 0 002-2V7l-7-5z"></path>
+                    </svg>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-gray-600 dark:text-gray-400">En attente</p>
+                    <p class="text-2xl font-semibold text-gray-900 dark:text-white">{{ pendingCount ?? 0 }}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+            <div class="flex items-center">
+                <div class="p-2 bg-green-100 dark:bg-green-900 rounded-lg">
+                    <svg class="w-6 h-6 text-green-600 dark:text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3z"></path>
+                    </svg>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-gray-600 dark:text-gray-400">Comptes connectés</p>
+                    <p class="text-2xl font-semibold text-gray-900 dark:text-white">{{ connectedAccounts ?? 0 }}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+            <div class="flex items-center">
+                <div class="p-2 bg-purple-100 dark:bg-purple-900 rounded-lg">
+                    <svg class="w-6 h-6 text-purple-600 dark:text-purple-400" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z"></path>
+                    </svg>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-gray-600 dark:text-gray-400">Destinations</p>
+                    <p class="text-2xl font-semibold text-gray-900 dark:text-white">{{ destinations|length }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <!-- Destinations Section -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+            <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-xl font-semibold text-gray-900 dark:text-white">Mes Destinations</h2>
+                    <a href="{{ path('app_destination_new') }}" 
+                       class="text-blue-600 hover:text-blue-700 dark:text-blue-400 text-sm font-medium">
+                        + Ajouter
+                    </a>
+                </div>
+            </div>
+            <div class="p-6">
+                {% if destinations is empty %}
+                    <div class="text-center py-8">
+                        <svg class="w-12 h-12 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                        </svg>
+                        <p class="text-gray-500 dark:text-gray-400 mb-4">Aucune destination configurée</p>
+                        <a href="{{ path('app_destination_new') }}" 
+                           class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm">
+                            Ajouter ma première destination
+                        </a>
+                    </div>
+                {% else %}
+                    <div class="space-y-3">
+                        {% for destination in destinations %}
+                            <div class="flex items-center justify-between p-3 border border-gray-200 dark:border-gray-700 rounded-lg">
+                                <div class="flex items-center space-x-3">
+                                    <div class="flex-shrink-0">
+                                        {% if destination.socialAccount.platform == 'reddit' %}
+                                            <div class="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center">
+                                                <span class="text-white text-xs font-bold">R</span>
+                                            </div>
+                                        {% elseif destination.socialAccount.platform == 'twitter' %}
+                                            <div class="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
+                                                <span class="text-white text-xs font-bold">T</span>
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                    <div>
+                                        <h3 class="font-medium text-gray-900 dark:text-white">{{ destination.displayName }}</h3>
+                                        <p class="text-sm text-gray-500 dark:text-gray-400">
+                                            {{ destination.socialAccount.platform|title }} - {{ destination.name }}
+                                        </p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center space-x-2">
+                                    {% if destination.isActive %}
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                                            Actif
+                                        </span>
+                                    {% else %}
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">
+                                            Inactif
+                                        </span>
+                                    {% endif %}
+                                    <div class="relative">
+                                        <button class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300" onclick="toggleMenu({{ destination.id }})">
+                                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                                <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z"></path>
+                                            </svg>
+                                        </button>
+                                        <div id="menu-{{ destination.id }}" class="hidden absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-md shadow-lg z-10">
+                                            <a href="{{ path('app_destination_edit', {id: destination.id}) }}" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Modifier</a>
+                                            <a href="{{ path('app_destination_toggle', {id: destination.id}) }}" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                                {% if destination.isActive %}Désactiver{% else %}Activer{% endif %}
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                    <div class="mt-4 text-center">
+                        <a href="{{ path('app_destinations') }}" class="text-blue-600 hover:text-blue-700 dark:text-blue-400 text-sm">
+                            Voir toutes les destinations →
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Recent Posts Section -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+            <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+                <h2 class="text-xl font-semibold text-gray-900 dark:text-white">Posts Récents</h2>
+            </div>
+            <div class="p-6">
+                {% if recentPosts is empty %}
+                    <div class="text-center py-8">
+                        <p class="text-gray-500 dark:text-gray-400">Aucun post récent</p>
+                    </div>
+                {% else %}
+                    <div class="space-y-4">
+                        {% for post in recentPosts %}
+                            <div class="border-l-4 {% if post.status == 'published' %}border-green-500{% elseif post.status == 'pending' %}border-yellow-500{% else %}border-gray-300{% endif %} pl-4">
+                                <h3 class="font-medium text-gray-900 dark:text-white">{{ post.title }}</h3>
+                                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                                    {{ post.createdAt|date('d/m/Y H:i') }}
+                                </p>
+                                <div class="flex space-x-2 mt-2">
+                                    {% for publication in post.postPublications %}
+                                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium
+                                            {% if publication.status == 'published' %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200
+                                            {% elseif publication.status == 'pending' %}bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200
+                                            {% elseif publication.status == 'failed' %}bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200
+                                            {% else %}bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300{% endif %}">
+                                            {{ publication.destination }}
+                                        </span>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
 </div>
+
+<script>
+function toggleMenu(id) {
+    const menu = document.getElementById('menu-' + id);
+    menu.classList.toggle('hidden');
+    
+    // Fermer les autres menus
+    document.querySelectorAll('[id^="menu-"]').forEach(el => {
+        if (el.id !== 'menu-' + id) {
+            el.classList.add('hidden');
+        }
+    });
+}
+
+// Fermer les menus en cliquant ailleurs
+document.addEventListener('click', function(e) {
+    if (!e.target.closest('[onclick^="toggleMenu"]')) {
+        document.querySelectorAll('[id^="menu-"]').forEach(el => {
+            el.classList.add('hidden');
+        });
+    }
+});
+</script>
 {% endblock %}

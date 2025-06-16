@@ -9,6 +9,7 @@ use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: PostRepository::class)]
+#[ORM\HasLifecycleCallbacks]
 class Post
 {
     #[ORM\Id]
@@ -176,6 +177,11 @@ class Post
         return $this->status === 'published';
     }
 
+    public function isFailed(): bool
+    {
+        return $this->status === 'failed';
+    }
+
     /**
      * @return Collection<int, PostPublication>
      */
@@ -203,9 +209,141 @@ class Post
         return $this;
     }
 
+    /**
+     * Obtenir les publications par statut
+     */
+    public function getPublicationsByStatus(string $status): Collection
+    {
+        return $this->postPublications->filter(
+            fn(PostPublication $publication) => $publication->getStatus() === $status
+        );
+    }
+
+    /**
+     * Obtenir les publications publiées
+     */
+    public function getPublishedPublications(): Collection
+    {
+        return $this->getPublicationsByStatus('published');
+    }
+
+    /**
+     * Obtenir les publications en attente
+     */
+    public function getPendingPublications(): Collection
+    {
+        return $this->getPublicationsByStatus('pending');
+    }
+
+    /**
+     * Obtenir les publications échouées
+     */
+    public function getFailedPublications(): Collection
+    {
+        return $this->getPublicationsByStatus('failed');
+    }
+
+    /**
+     * Vérifier si toutes les publications sont publiées
+     */
+    public function areAllPublicationsPublished(): bool
+    {
+        if ($this->postPublications->isEmpty()) {
+            return false;
+        }
+
+        foreach ($this->postPublications as $publication) {
+            if (!$publication->isPublished()) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Obtenir le nombre de publications par statut
+     */
+    public function getPublicationStats(): array
+    {
+        $stats = [
+            'total' => $this->postPublications->count(),
+            'published' => 0,
+            'pending' => 0,
+            'failed' => 0,
+            'scheduled' => 0,
+        ];
+
+        foreach ($this->postPublications as $publication) {
+            $stats[$publication->getStatus()]++;
+        }
+
+        return $stats;
+    }
+
+    /**
+     * Obtenir un aperçu du contenu (pour les listes)
+     */
+    public function getContentPreview(int $length = 100): string
+    {
+        if (strlen($this->content) <= $length) {
+            return $this->content;
+        }
+
+        return substr($this->content, 0, $length) . '...';
+    }
+
+    /**
+     * Vérifier si le post a des médias
+     */
+    public function hasMediaFiles(): bool
+    {
+        return !empty($this->mediaFiles);
+    }
+
+    /**
+     * Obtenir le premier média (pour affichage)
+     */
+    public function getFirstMediaFile(): ?string
+    {
+        return $this->mediaFiles[0] ?? null;
+    }
+
+    /**
+     * Vérifier si le post peut être publié
+     */
+    public function canBePublished(): bool
+    {
+        return $this->status === 'draft' || $this->status === 'failed';
+    }
+
+    /**
+     * Vérifier si le post peut être modifié
+     */
+    public function canBeEdited(): bool
+    {
+        return $this->status !== 'published' || $this->getPendingPublications()->count() > 0;
+    }
+
     #[ORM\PreUpdate]
     public function onPreUpdate(): void
     {
         $this->updatedAt = new \DateTimeImmutable();
+    }
+
+    #[ORM\PrePersist]
+    public function onPrePersist(): void
+    {
+        if ($this->createdAt === null) {
+            $this->createdAt = new \DateTimeImmutable();
+        }
+        if ($this->updatedAt === null) {
+            $this->updatedAt = new \DateTimeImmutable();
+        }
+    }
+
+    public function __toString(): string
+    {
+        return $this->title ?? 'Post #' . $this->id;
     }
 }

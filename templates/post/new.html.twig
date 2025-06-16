@@ -1,0 +1,200 @@
+<!-- templates/posts/new.html.twig -->
+{% extends 'base.html.twig' %}
+
+{% block title %}Nouveau Post{% endblock %}
+
+{% block body %}
+<div class="container mx-auto px-4 py-6 max-w-4xl">
+    <div class="mb-6">
+        <a href="{{ path('app_posts') }}" 
+           class="text-blue-600 hover:text-blue-700 dark:text-blue-400 text-sm font-medium">
+            ← Retour aux posts
+        </a>
+    </div>
+
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+        <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Nouveau Post</h1>
+            <p class="text-gray-600 dark:text-gray-400 mt-2">
+                Créez un nouveau post et choisissez où le publier.
+            </p>
+        </div>
+
+        <div class="p-6">
+            {{ form_start(form, {'attr': {'class': 'space-y-6', 'id': 'post-form'}}) }}
+            
+            <!-- Titre -->
+            <div>
+                {{ form_label(form.title, null, {'label_attr': {'class': 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2'}}) }}
+                {{ form_widget(form.title, {'attr': {'class': 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white'}}) }}
+                {{ form_errors(form.title, {'error_attr': {'class': 'text-red-600 dark:text-red-400 text-sm mt-1'}}) }}
+            </div>
+
+            <!-- Contenu -->
+            <div>
+                {{ form_label(form.content, null, {'label_attr': {'class': 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2'}}) }}
+                {{ form_widget(form.content, {'attr': {'class': 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white', 'rows': 8}}) }}
+                {{ form_errors(form.content, {'error_attr': {'class': 'text-red-600 dark:text-red-400 text-sm mt-1'}}) }}
+                <div class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                    Le contenu sera automatiquement adapté à chaque plateforme.
+                </div>
+            </div>
+
+            <!-- Destinations -->
+            <div>
+                {{ form_label(form.destinations, null, {'label_attr': {'class': 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3'}}) }}
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {% for destination in form.destinations %}
+                        <div class="relative">
+                            <label class="flex items-center p-4 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors">
+                                {{ form_widget(destination, {'attr': {'class': 'sr-only destination-checkbox'}}) }}
+                                <div class="flex items-center w-full">
+                                    <div class="flex-shrink-0 mr-3">
+                                        {% set platform = destination.vars.choice.socialAccount.platform %}
+                                        {% if platform == 'reddit' %}
+                                            <div class="w-10 h-10 bg-orange-500 rounded-full flex items-center justify-center">
+                                                <span class="text-white text-sm font-bold">R</span>
+                                            </div>
+                                        {% elseif platform == 'twitter' %}
+                                            <div class="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center">
+                                                <span class="text-white text-sm font-bold">T</span>
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="flex-1 min-w-0">
+                                        <div class="text-sm font-medium text-gray-900 dark:text-white">
+                                            {{ destination.vars.choice.displayName }}
+                                        </div>
+                                        <div class="text-sm text-gray-500 dark:text-gray-400">
+                                            {{ platform|title }} - {{ destination.vars.choice.name }}
+                                        </div>
+                                    </div>
+                                    <div class="flex-shrink-0 ml-3">
+                                        <div class="checkbox-indicator w-5 h-5 border-2 border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 flex items-center justify-center">
+                                            <svg class="w-3 h-3 text-blue-600 hidden checkmark" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                                            </svg>
+                                        </div>
+                                    </div>
+                                </div>
+                            </label>
+                        </div>
+                    {% endfor %}
+                </div>
+                
+                {{ form_help(form.destinations, {'help_attr': {'class': 'text-sm text-gray-500 dark:text-gray-400 mt-2'}}) }}
+                {{ form_errors(form.destinations, {'error_attr': {'class': 'text-red-600 dark:text-red-400 text-sm mt-1'}}) }}
+            </div>
+
+            <!-- Options de publication -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    {{ form_label(form.publishOption, null, {'label_attr': {'class': 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2'}}) }}
+                    {{ form_widget(form.publishOption, {'attr': {'class': 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white', 'id': 'publish-option'}}) }}
+                </div>
+
+                <div id="scheduled-date-container" style="display: none;">
+                    {{ form_label(form.scheduledAt, null, {'label_attr': {'class': 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2'}}) }}
+                    {{ form_widget(form.scheduledAt, {'attr': {'class': 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white'}}) }}
+                </div>
+            </div>
+
+            <!-- Preview Section -->
+            <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                <h3 class="text-sm font-medium text-blue-800 dark:text-blue-200 mb-2">
+                    Aperçu de la publication
+                </h3>
+                <div id="preview-content" class="text-sm text-blue-700 dark:text-blue-300">
+                    Saisissez votre contenu pour voir l'aperçu...
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="flex justify-end space-x-3 pt-4">
+                <a href="{{ path('app_posts') }}" 
+                   class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
+                    Annuler
+                </a>
+                <button type="submit" 
+                        class="px-6 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    <span id="submit-text">Créer le post</span>
+                </button>
+            </div>
+
+            {{ form_end(form) }}
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Gestion des checkboxes personnalisées
+    const checkboxes = document.querySelectorAll('.destination-checkbox');
+    checkboxes.forEach(checkbox => {
+        const label = checkbox.closest('label');
+        const indicator = label.querySelector('.checkbox-indicator');
+        const checkmark = label.querySelector('.checkmark');
+        
+        function updateCheckbox() {
+            if (checkbox.checked) {
+                indicator.classList.add('bg-blue-600', 'border-blue-600');
+                indicator.classList.remove('bg-white', 'dark:bg-gray-700', 'border-gray-300', 'dark:border-gray-600');
+                checkmark.classList.remove('hidden');
+                label.classList.add('ring-2', 'ring-blue-500', 'border-blue-300');
+            } else {
+                indicator.classList.remove('bg-blue-600', 'border-blue-600');
+                indicator.classList.add('bg-white', 'dark:bg-gray-700', 'border-gray-300', 'dark:border-gray-600');
+                checkmark.classList.add('hidden');
+                label.classList.remove('ring-2', 'ring-blue-500', 'border-blue-300');
+            }
+        }
+        
+        updateCheckbox();
+        checkbox.addEventListener('change', updateCheckbox);
+    });
+
+    // Gestion de la programmation
+    const publishOption = document.getElementById('publish-option');
+    const scheduledContainer = document.getElementById('scheduled-date-container');
+    const submitText = document.getElementById('submit-text');
+    
+    publishOption.addEventListener('change', function() {
+        if (this.value === 'schedule') {
+            scheduledContainer.style.display = 'block';
+            submitText.textContent = 'Programmer le post';
+        } else {
+            scheduledContainer.style.display = 'none';
+            if (this.value === 'now') {
+                submitText.textContent = 'Publier maintenant';
+            } else {
+                submitText.textContent = 'Sauvegarder en brouillon';
+            }
+        }
+    });
+
+    // Preview du contenu
+    const titleField = document.querySelector('#post_title');
+    const contentField = document.querySelector('#post_content');
+    const previewContent = document.getElementById('preview-content');
+    
+    function updatePreview() {
+        const title = titleField.value.trim();
+        const content = contentField.value.trim();
+        
+        if (title || content) {
+            let preview = '';
+            if (title) preview += `<strong>${title}</strong>`;
+            if (title && content) preview += '<br><br>';
+            if (content) preview += content.substring(0, 200) + (content.length > 200 ? '...' : '');
+            previewContent.innerHTML = preview;
+        } else {
+            previewContent.textContent = 'Saisissez votre contenu pour voir l\'aperçu...';
+        }
+    }
+    
+    titleField.addEventListener('input', updatePreview);
+    contentField.addEventListener('input', updatePreview);
+});
+</script>
+{% endblock %}

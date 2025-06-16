@@ -2,7 +2,10 @@
 
 namespace App\Controller;
 
-use App\Repository\PostPublicationRepository;
+use App\Entity\Destination;
+use App\Form\DestinationType;
+use App\Repository\DestinationRepository;
+use App\Repository\SocialAccountRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -10,44 +13,100 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
-#[Route('/destinations', name: 'destination_')]
+#[Route('/destinations')]
 #[IsGranted('ROLE_USER')]
 class DestinationController extends AbstractController
 {
-    #[Route('/', name: 'index')]
-    public function index(PostPublicationRepository $postPublicationRepo): Response
+    #[Route('/', name: 'app_destinations')]
+    public function index(DestinationRepository $destinationRepository): Response
     {
-        // Récupérer toutes les destinations uniques utilisées par l'utilisateur
-        $existingDestinations = $postPublicationRepo->createQueryBuilder('pp')
-            ->select('DISTINCT pp.destination')
-            ->join('pp.socialAccount', 'sa')
-            ->where('sa.user = :user')
-            ->andWhere('sa.platform = :platform')
-            ->setParameter('user', $this->getUser())
-            ->setParameter('platform', 'reddit')
-            ->getQuery()
-            ->getSingleColumnResult();
+        $destinations = $destinationRepository->findBy(['user' => $this->getUser()]);
 
-        return $this->render('destination/index.html.twig', [
-            'destinations' => $existingDestinations,
+        return $this->render('destinations/index.html.twig', [
+            'destinations' => $destinations,
         ]);
     }
 
-    #[Route('/add', name: 'add', methods: ['POST'])]
-    public function add(Request $request): Response
-    {
-        $subreddit = $request->request->get('subreddit');
-        
-        if (empty($subreddit)) {
-            $this->addFlash('error', 'Le nom du subreddit est requis');
-            return $this->redirectToRoute('destination_index');
+    #[Route('/new', name: 'app_destination_new')]
+    public function new(
+        Request $request,
+        EntityManagerInterface $entityManager,
+        SocialAccountRepository $socialAccountRepository
+    ): Response {
+        $destination = new Destination();
+        $destination->setUser($this->getUser());
+
+        $form = $this->createForm(DestinationType::class, $destination, [
+            'user' => $this->getUser(),
+        ]);
+        $form->handleRequest($request);
+
+        if ($form->isSubmitted() && $form->isValid()) {
+            $entityManager->persist($destination);
+            $entityManager->flush();
+
+            $this->addFlash('success', 'Destination ajoutée avec succès !');
+            return $this->redirectToRoute('app_destinations');
         }
 
-        // Nettoyer le nom du subreddit
-        $cleanSubreddit = 'r/' . ltrim($subreddit, 'r/');
+        return $this->render('destinations/new.html.twig', [
+            'form' => $form,
+        ]);
+    }
 
-        $this->addFlash('success', "Destination '{$cleanSubreddit}' ajoutée à votre liste !");
-        
-        return $this->redirectToRoute('destination_index');
+    #[Route('/{id}/edit', name: 'app_destination_edit')]
+    public function edit(
+        Destination $destination,
+        Request $request,
+        EntityManagerInterface $entityManager
+    ): Response {
+        $this->denyAccessUnlessGranted('edit', $destination);
+
+        $form = $this->createForm(DestinationType::class, $destination, [
+            'user' => $this->getUser(),
+        ]);
+        $form->handleRequest($request);
+
+        if ($form->isSubmitted() && $form->isValid()) {
+            $entityManager->flush();
+
+            $this->addFlash('success', 'Destination modifiée avec succès !');
+            return $this->redirectToRoute('app_destinations');
+        }
+
+        return $this->render('destinations/edit.html.twig', [
+            'form' => $form,
+            'destination' => $destination,
+        ]);
+    }
+
+    #[Route('/{id}/toggle', name: 'app_destination_toggle')]
+    public function toggle(
+        Destination $destination,
+        EntityManagerInterface $entityManager
+    ): Response {
+        $this->denyAccessUnlessGranted('edit', $destination);
+
+        $destination->setIsActive(!$destination->isActive());
+        $entityManager->flush();
+
+        $status = $destination->isActive() ? 'activée' : 'désactivée';
+        $this->addFlash('success', "Destination {$status} avec succès !");
+
+        return $this->redirectToRoute('app_destinations');
+    }
+
+    #[Route('/{id}/delete', name: 'app_destination_delete', methods: ['POST'])]
+    public function delete(
+        Destination $destination,
+        EntityManagerInterface $entityManager
+    ): Response {
+        $this->denyAccessUnlessGranted('delete', $destination);
+
+        $entityManager->remove($destination);
+        $entityManager->flush();
+
+        $this->addFlash('success', 'Destination supprimée avec succès !');
+        return $this->redirectToRoute('app_destinations');
     }
 }
