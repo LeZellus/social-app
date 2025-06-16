@@ -49,7 +49,7 @@ class RedditApiService
 
     public function handleCallback(string $code, string $state, string $redirectUri, User $user): void
     {
-        error_log("=== DEBUT CALLBACK REDDIT AVEC DEBUG ===");
+        error_log("=== DEBUT CALLBACK REDDIT ===");
         
         $credentials = $this->getUserCredentials($user, 'reddit');
         if (!$credentials) {
@@ -65,120 +65,69 @@ class RedditApiService
         $tokenData = $this->exchangeCodeForToken($code, $redirectUri, $credentials);
         $userInfo = $this->getUserInfo($tokenData['access_token'], $credentials);
         
-        error_log("User info reçu: " . json_encode($userInfo));
-        error_log("Token data: " . json_encode(array_keys($tokenData))); // Ne pas logger les tokens complets
-        
-        // Rechercher un compte existant (actif ou inactif)
-        error_log("Recherche compte existant pour user_id={$user->getId()}, platform=reddit");
-        
+        error_log("User: " . $userInfo['name'] . ", Token reçu");
+
+        // IMPORTANT: Vérifier d'abord si un compte existe
         $socialAccount = $this->socialAccountRepository->findOneBy([
             'user' => $user,
             'platform' => 'reddit'
         ]);
-        
+
         if ($socialAccount) {
-            error_log("Compte trouvé en base: ID={$socialAccount->getId()}, active={$socialAccount->isActive()}, account_name={$socialAccount->getAccountName()}");
+            error_log("Mise à jour du compte existant ID: " . $socialAccount->getId());
+            
+            // Mettre à jour le compte existant
+            $socialAccount->setAccountName($userInfo['name']);
+            $socialAccount->setAccessToken($tokenData['access_token']);
+            $socialAccount->setRefreshToken($tokenData['refresh_token'] ?? null);
+            $socialAccount->setIsActive(true);
+            
+            if (isset($tokenData['expires_in'])) {
+                $expiresAt = new \DateTimeImmutable('+' . $tokenData['expires_in'] . ' seconds');
+                $socialAccount->setTokenExpiresAt($expiresAt);
+            }
         } else {
-            error_log("Aucun compte trouvé, création d'un nouveau");
-        }
-        
-        if (!$socialAccount) {
+            error_log("Création d'un nouveau compte Reddit");
+            
             // Créer un nouveau compte
-            error_log("Création nouveau SocialAccount");
             $socialAccount = new SocialAccount();
             $socialAccount->setUser($user);
             $socialAccount->setPlatform('reddit');
-            $socialAccount->setCreatedAt(new \DateTimeImmutable());
+            $socialAccount->setAccountName($userInfo['name']);
+            $socialAccount->setAccessToken($tokenData['access_token']);
+            $socialAccount->setRefreshToken($tokenData['refresh_token'] ?? null);
+            $socialAccount->setIsActive(true);
+            
+            if (isset($tokenData['expires_in'])) {
+                $expiresAt = new \DateTimeImmutable('+' . $tokenData['expires_in'] . ' seconds');
+                $socialAccount->setTokenExpiresAt($expiresAt);
+            }
+            
             $this->entityManager->persist($socialAccount);
-            error_log("Nouveau compte persisté en mémoire");
-        } else {
-            error_log("Mise à jour du compte existant");
         }
 
-        // Mettre à jour les données
-        error_log("Configuration des données du compte");
-        $socialAccount->setAccountName($userInfo['name']);
-        $socialAccount->setAccessToken($tokenData['access_token']);
-        $socialAccount->setRefreshToken($tokenData['refresh_token'] ?? null);
-        $socialAccount->setIsActive(true);
-
-        if (isset($tokenData['expires_in'])) {
-            $expiresAt = new \DateTimeImmutable('+' . $tokenData['expires_in'] . ' seconds');
-            $socialAccount->setTokenExpiresAt($expiresAt);
-            error_log("Token expire le: " . $expiresAt->format('Y-m-d H:i:s'));
-        }
-
-        error_log("Tentative de flush...");
+        // Sauvegarder
         try {
             $this->entityManager->flush();
-            error_log("✅ FLUSH RÉUSSI!");
-            
-            // Vérifier que le compte est bien en base
-            $verifyAccount = $this->socialAccountRepository->findOneBy([
-                'user' => $user,
-                'platform' => 'reddit'
-            ]);
-            
-            if ($verifyAccount) {
-                error_log("✅ Vérification: compte bien présent en base avec ID=" . $verifyAccount->getId());
-            } else {
-                error_log("❌ Vérification: compte introuvable en base après flush!");
-            }
-            
+            error_log("✅ Compte sauvegardé - ID: " . $socialAccount->getId());
         } catch (\Exception $e) {
-            error_log("❌ ERREUR LORS DU FLUSH: " . $e->getMessage());
-            error_log("Type d'exception: " . get_class($e));
-            
-            // Analyser le type d'erreur
-            $errorMessage = $e->getMessage();
-            if (strpos($errorMessage, 'UNIQ_USER_PLATFORM') !== false || 
-                strpos($errorMessage, 'Duplicate entry') !== false ||
-                strpos($errorMessage, '1062') !== false) {
-                
-                error_log("⚠️ Détection violation contrainte unique");
-                
-                // Rafraîchir l'EntityManager et récupérer le compte existant
-                error_log("Clear de l'EntityManager");
-                $this->entityManager->clear();
-                
-                error_log("Re-recherche du compte existant");
-                $socialAccount = $this->socialAccountRepository->findOneBy([
-                    'user' => $user,
-                    'platform' => 'reddit'
-                ]);
-                
-                if ($socialAccount) {
-                    error_log("Compte récupéré après clear: ID={$socialAccount->getId()}");
-                    
-                    // Mettre à jour le compte existant
-                    $socialAccount->setAccountName($userInfo['name']);
-                    $socialAccount->setAccessToken($tokenData['access_token']);
-                    $socialAccount->setRefreshToken($tokenData['refresh_token'] ?? null);
-                    $socialAccount->setIsActive(true);
-                    
-                    if (isset($tokenData['expires_in'])) {
-                        $expiresAt = new \DateTimeImmutable('+' . $tokenData['expires_in'] . ' seconds');
-                        $socialAccount->setTokenExpiresAt($expiresAt);
-                    }
-                    
-                    error_log("Tentative de flush du compte existant...");
-                    $this->entityManager->flush();
-                    error_log("✅ Mise à jour du compte existant réussie");
-                } else {
-                    error_log("❌ Impossible de récupérer le compte après clear");
-                    throw new \Exception("Impossible de créer ou récupérer le compte social");
-                }
-            } else {
-                error_log("❌ Erreur non liée à la contrainte unique");
-                throw $e;
-            }
+            error_log("❌ Erreur flush: " . $e->getMessage());
+            throw $e;
         }
         
         // Nettoyer la session
         $session->set('reddit_access_token', $tokenData['access_token']);
         $session->remove('reddit_oauth_state');
         
-        error_log("=== FIN CALLBACK REDDIT DEBUG ===");
+        error_log("=== FIN CALLBACK REDDIT ===");
+    }
+
+    public function hasValidCredentials(User $user): bool
+    {
+        $credentials = $this->getUserCredentials($user, 'reddit');
+        return $credentials !== null && 
+            !empty($credentials->getClientId()) && 
+            !empty($credentials->getClientSecret());
     }
 
     private function exchangeCodeForToken(string $code, string $redirectUri, ApiCredentials $credentials): array
@@ -236,11 +185,72 @@ class RedditApiService
         return $response->toArray();
     }
 
-    public function hasValidCredentials(User $user): bool
+    private function safeSaveSocialAccount(User $user, array $userInfo, array $tokenData): SocialAccount
     {
-        $credentials = $this->getUserCredentials($user, 'reddit');
-        return $credentials && $credentials->isActive() && 
-               $credentials->getClientId() && $credentials->getClientSecret();
+        // Commencer une transaction
+        $this->entityManager->beginTransaction();
+        
+        try {
+            // Vérifier si un compte existe déjà
+            $socialAccount = $this->socialAccountRepository->findOneBy([
+                'user' => $user,
+                'platform' => 'reddit'
+            ]);
+
+            if (!$socialAccount) {
+                $socialAccount = new SocialAccount();
+                $socialAccount->setUser($user);
+                $socialAccount->setPlatform('reddit');
+                $this->entityManager->persist($socialAccount);
+            }
+
+            // Mettre à jour les données
+            $socialAccount->setAccountName($userInfo['name']);
+            $socialAccount->setAccessToken($tokenData['access_token']);
+            $socialAccount->setRefreshToken($tokenData['refresh_token'] ?? null);
+            $socialAccount->setIsActive(true);
+            
+            if (isset($tokenData['expires_in'])) {
+                $expiresAt = new \DateTimeImmutable('+' . $tokenData['expires_in'] . ' seconds');
+                $socialAccount->setTokenExpiresAt($expiresAt);
+            }
+
+            $this->entityManager->flush();
+            $this->entityManager->commit();
+            
+            return $socialAccount;
+            
+        } catch (\Exception $e) {
+            $this->entityManager->rollback();
+            
+            // Si contrainte unique, récupérer le compte existant
+            if (strpos($e->getMessage(), 'UNIQ') !== false || 
+                strpos($e->getMessage(), 'Duplicate') !== false) {
+                
+                $existingAccount = $this->socialAccountRepository->findOneBy([
+                    'user' => $user,
+                    'platform' => 'reddit'
+                ]);
+                
+                if ($existingAccount) {
+                    // Mise à jour directe sans transaction
+                    $existingAccount->setAccountName($userInfo['name']);
+                    $existingAccount->setAccessToken($tokenData['access_token']);
+                    $existingAccount->setRefreshToken($tokenData['refresh_token'] ?? null);
+                    $existingAccount->setIsActive(true);
+                    
+                    if (isset($tokenData['expires_in'])) {
+                        $expiresAt = new \DateTimeImmutable('+' . $tokenData['expires_in'] . ' seconds');
+                        $existingAccount->setTokenExpiresAt($expiresAt);
+                    }
+                    
+                    $this->entityManager->flush();
+                    return $existingAccount;
+                }
+            }
+            
+            throw $e;
+        }
     }
 
     private function getUserCredentials(User $user, string $platform): ?ApiCredentials

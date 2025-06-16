@@ -125,7 +125,10 @@ class RedditController extends AbstractController
             error_log("✓ handleCallback terminé sans exception");
             
             // Vérifier que le compte a bien été créé
-            $redditAccount = $socialAccountRepository->findByUserAndPlatform($this->getUser(), 'reddit');
+            $redditAccount = $socialAccountRepository->findOneBy([
+                'user' => $this->getUser(),
+                'platform' => 'reddit'
+            ]);
             if ($redditAccount) {
                 error_log("✓ Compte trouvé en base: " . $redditAccount->getAccountName());
                 $this->addFlash('success', sprintf(
