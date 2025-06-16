@@ -17,9 +17,11 @@ services:
         resource: '../src/'
     App\Service\RedditApiService:
         arguments:
-            $clientId: '%env(REDDIT_CLIENT_ID)%'
-            $clientSecret: '%env(REDDIT_CLIENT_SECRET)%'
-            $userAgent: '%env(REDDIT_USER_AGENT)%'
+            $httpClient: '@http_client'
+            $requestStack: '@request_stack'
+            $entityManager: '@doctrine.orm.entity_manager'
+            $socialAccountRepository: '@App\Repository\SocialAccountRepository'
+            $apiCredentialsRepository: '@App\Repository\ApiCredentialsRepository'
 
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones

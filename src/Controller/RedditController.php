@@ -2,174 +2,60 @@
 
 namespace App\Controller;
 
-use App\Form\RedditPostType;
-use App\Repository\RedditRepository;
 use App\Service\RedditApiService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
-use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
 
-#[Route('/reddit', name: 'reddit_')]
+#[Route('/reddit')]
+#[IsGranted('ROLE_USER')]
 class RedditController extends AbstractController
 {
-    public function __construct(
-        private readonly RedditApiService $redditApi
-    ) {}
-
-    #[Route('/', name: 'home')]
-    public function index(RedditRepository $redditRepository): Response
+    #[Route('/connect', name: 'reddit_connect')]
+    public function connect(RedditApiService $redditApi): Response
     {
-        return $this->render('reddit/index.html.twig', [
-            'is_connected' => $this->redditApi->isConnected(),
-            'subreddits' => $redditRepository->findAll(),
-        ]);
-    }
-
-    #[Route('/post', name: 'create_post')]
-    public function createPost(Request $request, RedditRepository $redditRepository): Response
-    {
-        if (!$this->redditApi->isConnected()) {
-            $this->addFlash('error', 'Vous devez vous connecter à Reddit d\'abord');
-            return $this->redirectToRoute('reddit_home');
-        }
-
-        // Vérifier qu'il y a des subreddits enregistrés
-        if ($redditRepository->count() === 0) {
-            $this->addFlash('error', 'Aucun subreddit enregistré. Ajoutez-en un dans l\'admin.');
-            return $this->redirectToRoute('reddit_home');
-        }
-
-        $form = $this->createForm(RedditPostType::class);
-        $form->handleRequest($request);
-
-        if ($form->isSubmitted() && $form->isValid()) {
-            $data = $form->getData();
-            
-            try {
-                if ($data['type'] === 'text') {
-                    if (empty($data['text'])) {
-                        $this->addFlash('error', 'Le contenu texte est requis');
-                        return $this->render('reddit/create_post.html.twig', ['form' => $form]);
-                    }
-                    
-                    $result = $this->redditApi->postText(
-                        $data['subreddit'],
-                        $data['title'],
-                        $data['text']
-                    );
-                } else {
-                    if (empty($data['url'])) {
-                        $this->addFlash('error', 'L\'URL est requise');
-                        return $this->render('reddit/create_post.html.twig', ['form' => $form]);
-                    }
-                    
-                    $result = $this->redditApi->postLink(
-                        $data['subreddit'],
-                        $data['title'],
-                        $data['url']
-                    );
-                }
-
-                $this->addFlash('success', 'Post créé avec succès sur r/' . $data['subreddit'] . ' !');
-                return $this->redirectToRoute('reddit_home');
-                
-            } catch (\Exception $e) {
-                $this->addFlash('error', 'Erreur Reddit : ' . $e->getMessage());
-            }
-        }
-
-        return $this->render('reddit/create_post.html.twig', [
-            'form' => $form,
-        ]);
-    }
-
-    #[Route('/connect', name: 'connect')]
-    public function connect(): Response
-    {
-        $redirectUri = $this->generateUrl('reddit_callback', [], UrlGeneratorInterface::ABSOLUTE_URL);
+        $user = $this->getUser();
         
-        $authUrl = $this->redditApi->getAuthorizationUrl($redirectUri);
+        // Vérifier que l'utilisateur a configuré ses clefs
+        if (!$redditApi->hasValidCredentials($user)) {
+            $this->addFlash('error', 'Vous devez d\'abord configurer vos clefs API Reddit.');
+            return $this->redirectToRoute('app_api_credentials_new', ['platform' => 'reddit']);
+        }
+
+        $redirectUri = $this->generateUrl('reddit_callback', [], \Symfony\Component\Routing\Generator\UrlGeneratorInterface::ABSOLUTE_URL);
+        $authUrl = $redditApi->getAuthorizationUrl($redirectUri, $user);
+
         return $this->redirect($authUrl);
     }
 
-    #[Route('/callback', name: 'callback')]
-    public function callback(Request $request): Response
+    #[Route('/callback', name: 'reddit_callback')]
+    public function callback(Request $request, RedditApiService $redditApi): Response
     {
         $code = $request->query->get('code');
         $state = $request->query->get('state');
-        
+        $error = $request->query->get('error');
+
+        if ($error) {
+            $this->addFlash('error', 'Erreur lors de la connexion Reddit : ' . $error);
+            return $this->redirectToRoute('app_social_accounts');
+        }
+
         if (!$code || !$state) {
-            $this->addFlash('error', 'Code ou state manquant');
+            $this->addFlash('error', 'Paramètres manquants pour la connexion Reddit');
             return $this->redirectToRoute('app_social_accounts');
         }
 
         try {
-            $redirectUri = $request->getSchemeAndHttpHost() . $this->generateUrl('reddit_callback');
-            $this->redditApi->handleCallback($code, $state, $redirectUri, $this->getUser());
+            $redirectUri = $this->generateUrl('reddit_callback', [], \Symfony\Component\Routing\Generator\UrlGeneratorInterface::ABSOLUTE_URL);
+            $redditApi->handleCallback($code, $state, $redirectUri, $this->getUser());
             
             $this->addFlash('success', 'Compte Reddit connecté avec succès !');
         } catch (\Exception $e) {
-            $this->addFlash('error', 'Erreur : ' . $e->getMessage());
+            $this->addFlash('error', 'Erreur lors de la connexion : ' . $e->getMessage());
         }
 
         return $this->redirectToRoute('app_social_accounts');
-    }
-
-    #[Route('/subreddit/add', name: 'add_subreddit')]
-    public function addSubreddit(Request $request, RedditRepository $redditRepository, EntityManagerInterface $em): Response
-    {
-        $reddit = new Reddit(); // Remplace par ton entité existante
-        
-        $form = $this->createForm(SubredditType::class, $reddit);
-        $form->handleRequest($request);
-
-        if ($form->isSubmitted() && $form->isValid()) {
-            // Nettoyer le nom (enlever r/ si présent)
-            $name = ltrim($reddit->getName(), 'r/');
-            $reddit->setName($name);
-            
-            // Vérifier si existe déjà
-            if ($redditRepository->findOneBy(['name' => $name])) {
-                $this->addFlash('error', 'Ce subreddit est déjà dans votre liste');
-                return $this->render('reddit/add_subreddit.html.twig', ['form' => $form]);
-            }
-            
-            $em->persist($reddit);
-            $em->flush();
-            
-            $this->addFlash('success', 'Subreddit r/' . $name . ' ajouté avec succès');
-            return $this->redirectToRoute('reddit_home');
-        }
-
-        return $this->render('reddit/add_subreddit.html.twig', [
-            'form' => $form,
-        ]);
-    }
-
-    #[Route('/disconnect', name: 'disconnect')]
-    public function disconnect(): Response
-    {
-        $this->redditApi->disconnect();
-        $this->addFlash('success', 'Déconnecté de Reddit');
-        
-        return $this->redirectToRoute('reddit_home');
-    }
-
-    #[Route('/posts/{subreddit}', name: 'posts')]
-    public function posts(string $subreddit): Response
-    {
-        try {
-            $posts = $this->redditApi->getSubredditPosts($subreddit);
-            
-            return $this->render('reddit/posts.html.twig', [
-                'subreddit' => $subreddit,
-                'posts' => $posts['data']['children'] ?? [],
-            ]);
-        } catch (\Exception $e) {
-            $this->addFlash('error', 'Erreur : ' . $e->getMessage());
-            return $this->redirectToRoute('reddit_home');
-        }
     }
 }

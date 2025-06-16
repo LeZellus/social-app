@@ -64,51 +64,102 @@
         <!-- Connected Accounts Section -->
         <div class="bg-white dark:bg-gray-800 shadow rounded-lg mb-6">
             <div class="px-6 py-8">
-                <div class="flex items-center mb-6">
-                    <svg class="w-6 h-6 text-gray-700 dark:text-gray-300 me-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 19">
-                        <path d="M14.5 0A3.987 3.987 0 0 0 11 2.1a4.977 4.977 0 0 1 3.9 5.858A3.989 3.989 0 0 0 14.5 0ZM9 13h2a4 4 0 0 1 4 4v2H5v-2a4 4 0 0 1 4-4Z"/>
-                        <path d="M5 19h10v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2ZM5 7a5.008 5.008 0 0 1 4-4.9 3.988 3.988 0 1 0-3.9 5.859A4.974 4.974 0 0 1 5 7Zm5 3a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm5-1h-.424a5.016 5.016 0 0 1-1.942 2.232A6.007 6.007 0 0 1 17 17h2a1 1 0 0 0 1-1v-2a5.006 5.006 0 0 0-5-5ZM5.424 9H5a5.006 5.006 0 0 0-5 5v2a1 1 0 0 0 1 1h2a6.007 6.007 0 0 1 4.366-5.768A5.016 5.016 0 0 1 5.424 9Z"/>
-                    </svg>
+                <div class="flex items-center justify-between mb-6">
                     <h3 class="text-xl font-semibold text-gray-900 dark:text-white">Comptes connectés</h3>
+                    <a href="{{ path('app_social_accounts') }}" 
+                       class="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                        Gérer →
+                    </a>
                 </div>
                 
+                <!-- Add API Keys Section -->
+                <div class="mb-6 p-4 bg-yellow-50 dark:bg-yellow-900 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+                    <div class="flex items-start">
+                        <div class="flex-shrink-0">
+                            <svg class="h-5 w-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                            </svg>
+                        </div>
+                        <div class="ml-3">
+                            <h4 class="text-sm font-medium text-yellow-800 dark:text-yellow-200">
+                                Configuration des clefs API requise
+                            </h4>
+                            <p class="mt-1 text-sm text-yellow-700 dark:text-yellow-300">
+                                Pour publier sur les réseaux sociaux, vous devez d'abord configurer vos clefs API privées.
+                            </p>
+                            <div class="mt-3">
+                                <a href="{{ path('app_api_credentials_index') }}" 
+                                   class="inline-flex items-center px-3 py-2 text-sm font-medium text-yellow-800 bg-yellow-100 rounded-lg hover:bg-yellow-200 dark:bg-yellow-800 dark:text-yellow-200 dark:hover:bg-yellow-700">
+                                    <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9zM13.73 21a2 2 0 01-3.46 0" clip-rule="evenodd"/>
+                                    </svg>
+                                    Configurer mes clefs API
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Existing social accounts display -->
                 {% if user.socialAccounts|length > 0 %}
-                    <div class="grid gap-4 mb-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         {% for account in user.socialAccounts %}
-                            {% if account.isActive %}
-                            <div class="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                                <div class="flex items-center space-x-4">
+                            <div class="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
+                                <div class="flex items-center space-x-3">
                                     {% if account.platform == 'reddit' %}
-                                        <div class="w-12 h-12 bg-orange-500 rounded-full flex items-center justify-center text-white text-xl">
-                                            <svg class="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">
-                                                <path d="M12 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0zm5.01 4.744c.688 0 1.25.561 1.25 1.249a1.25 1.25 0 0 1-2.498.056l-2.597-.547-.8 3.747c1.824.07 3.48.632 4.674 1.488.308-.309.73-.491 1.207-.491.968 0 1.754.786 1.754 1.754 0 .716-.435 1.333-1.01 1.614a3.111 3.111 0 0 1 .042.52c0 2.694-3.13 4.87-7.004 4.87-3.874 0-7.004-2.176-7.004-4.87 0-.183.015-.366.043-.534A1.748 1.748 0 0 1 4.028 12c0-.968.786-1.754 1.754-1.754.463 0 .898.196 1.207.49 1.207-.883 2.878-1.43 4.744-1.487l.885-4.182a.342.342 0 0 1 .14-.197.35.35 0 0 1 .238-.042l2.906.617a1.214 1.214 0 0 1 1.108-.701zM9.25 12C8.561 12 8 12.562 8 13.25c0 .687.561 1.248 1.25 1.248.687 0 1.248-.561 1.248-1.249 0-.688-.561-1.249-1.249-1.249zm5.5 0c-.687 0-1.248.561-1.248 1.25 0 .687.561 1.248 1.249 1.248.688 0 1.249-.561 1.249-1.249 0-.687-.562-1.249-1.25-1.249zm-5.466 3.99a.327.327 0 0 0-.231.094.33.33 0 0 0 0 .463c.842.842 2.484.913 2.961.913.477 0 2.105-.056 2.961-.913a.361.361 0 0 0 .029-.463.33.33 0 0 0-.464 0c-.547.533-1.684.73-2.512.73-.828 0-1.979-.196-2.512-.73a.326.326 0 0 0-.232-.095z"/>
-                                            </svg>
+                                        <div class="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
+                                            <span class="text-orange-600 font-bold">📱</span>
                                         </div>
-                                        <div>
-                                            <div class="font-medium text-gray-900 dark:text-white">Reddit</div>
-                                            <div class="text-sm text-gray-500 dark:text-gray-400">u/{{ account.accountName }}</div>
+                                    {% elseif account.platform == 'twitter' %}
+                                        <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                                            <span class="text-blue-600 font-bold">🐦</span>
                                         </div>
                                     {% endif %}
+                                    <div>
+                                        <p class="text-sm font-medium text-gray-900 dark:text-white">
+                                            {{ account.platform|title }}
+                                        </p>
+                                        <p class="text-sm text-gray-500 dark:text-gray-400">
+                                            @{{ account.accountName }}
+                                        </p>
+                                    </div>
                                 </div>
                                 <div class="flex items-center space-x-2">
-                                    <span class="inline-flex items-center bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded-full dark:bg-green-900 dark:text-green-300">
-                                        <span class="w-2 h-2 me-1 bg-green-500 rounded-full"></span>
-                                        Connecté
-                                    </span>
+                                    {% if account.isActive %}
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                            <span class="w-2 h-2 mr-1 bg-green-400 rounded-full"></span>
+                                            Connecté
+                                        </span>
+                                    {% else %}
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                            <span class="w-2 h-2 mr-1 bg-red-400 rounded-full"></span>
+                                            Déconnecté
+                                        </span>
+                                    {% endif %}
                                 </div>
                             </div>
-                            {% endif %}
                         {% endfor %}
                     </div>
+                {% else %}
+                    <div class="text-center py-8">
+                        <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                            <path d="M34 40h10v-4a6 6 0 00-10.712-3.714M34 40H14m20 0v-4a9.971 9.971 0 00-.712-3.714M14 40H4v-4a6 6 0 0110.713-3.714M14 40v-4c0-1.313.253-2.566.713-3.714m0 0A10.003 10.003 0 0124 26c4.21 0 7.813 2.602 9.288 6.286M30 14a6 6 0 11-12 0 6 6 0 0112 0zm12 6a4 4 0 11-8 0 4 4 0 018 0zm-28 0a4 4 0 11-8 0 4 4 0 018 0z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">Aucun compte connecté</h3>
+                        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                            Commencez par connecter vos comptes de réseaux sociaux.
+                        </p>
+                        <div class="mt-6">
+                            <a href="{{ path('app_social_accounts') }}" 
+                               class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700">
+                                <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/>
+                                </svg>
+                                Connecter un compte
+                            </a>
+                        </div>
+                    </div>
                 {% endif %}
-
-                <!-- Add Account Button -->
-                <a href="{{ path('reddit_home') }}" class="w-full flex items-center justify-center px-4 py-2 border-2 border-gray-300 border-dashed rounded-lg hover:border-gray-400 hover:bg-gray-50 dark:border-gray-600 dark:hover:border-gray-500 dark:hover:bg-gray-700 transition-colors">
-                    <svg class="w-8 h-8 text-gray-400 dark:text-gray-500" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
-                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 5.757v8.486M5.757 10h8.486M19 10a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/>
-                    </svg>
-                    <span class="ml-2 text-sm font-medium text-gray-900 dark:text-white">Connecter Reddit</span>
-                </a>
             </div>
         </div>
 
