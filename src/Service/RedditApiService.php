@@ -20,9 +20,6 @@ final readonly class RedditApiService
         private string $userAgent = 'Symfony-App/1.0'
     ) {}
 
-    /**
-     * URL pour connecter l'utilisateur à Reddit
-     */
     public function getAuthorizationUrl(string $redirectUri): string
     {
         $state = bin2hex(random_bytes(16));
@@ -40,9 +37,6 @@ final readonly class RedditApiService
         return self::BASE_URL . '/authorize?' . $params;
     }
 
-    /**
-     * Échange le code contre un token d'accès
-     */
     public function handleCallback(string $code, string $state, string $redirectUri): string
     {
         $storedState = $this->requestStack->getSession()->get('reddit_oauth_state');
@@ -66,16 +60,12 @@ final readonly class RedditApiService
 
         $data = $response->toArray();
         
-        // Stocker le token en session
         $this->requestStack->getSession()->set('reddit_access_token', $data['access_token']);
         $this->requestStack->getSession()->set('reddit_token_expiry', time() + $data['expires_in']);
         
         return $data['access_token'];
     }
 
-    /**
-     * Vérifie si l'utilisateur est connecté à Reddit
-     */
     public function isConnected(): bool
     {
         $token = $this->requestStack->getSession()->get('reddit_access_token');
@@ -84,9 +74,6 @@ final readonly class RedditApiService
         return $token && $expiry && time() < $expiry;
     }
 
-    /**
-     * Récupère le token d'accès depuis la session
-     */
     private function getAccessToken(): string
     {
         if (!$this->isConnected()) {
@@ -96,9 +83,6 @@ final readonly class RedditApiService
         return $this->requestStack->getSession()->get('reddit_access_token');
     }
 
-    /**
-     * Poster du texte dans un subreddit
-     */
     public function postText(string $subreddit, string $title, string $text): array
     {
         $token = $this->getAccessToken();
@@ -120,9 +104,6 @@ final readonly class RedditApiService
         return $response->toArray();
     }
 
-    /**
-     * Poster un lien dans un subreddit
-     */
     public function postLink(string $subreddit, string $title, string $url): array
     {
         $token = $this->getAccessToken();
@@ -144,12 +125,8 @@ final readonly class RedditApiService
         return $response->toArray();
     }
 
-    /**
-     * Récupérer les posts d'un subreddit
-     */
     public function getSubredditPosts(string $subreddit, string $sort = 'hot', int $limit = 25): array
     {
-        // Pour la lecture, on peut utiliser l'API publique
         $response = $this->httpClient->request('GET', sprintf('https://www.reddit.com/r/%s/%s.json', $subreddit, $sort), [
             'headers' => ['User-Agent' => $this->userAgent],
             'query' => ['limit' => $limit],
@@ -158,9 +135,6 @@ final readonly class RedditApiService
         return $response->toArray();
     }
 
-    /**
-     * Déconnexion Reddit
-     */
     public function disconnect(): void
     {
         $this->requestStack->getSession()->remove('reddit_access_token');

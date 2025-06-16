@@ -2,6 +2,9 @@
 
 namespace App\Form;
 
+use App\Entity\Reddit;
+use App\Repository\RedditRepository;
+use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\SubmitType;
@@ -18,10 +21,14 @@ class RedditPostType extends AbstractType
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
         $builder
-            ->add('subreddit', TextType::class, [
+            ->add('subreddit', EntityType::class, [
+                'class' => Reddit::class,
+                'choice_label' => 'name', // Adaptez selon le nom de votre propriété
+                'choice_value' => 'name', // Adaptez selon le nom de votre propriété
                 'label' => 'Subreddit',
-                'attr' => ['placeholder' => 'Ex: test, programming...'],
+                'placeholder' => 'Choisir un subreddit...',
                 'constraints' => [new NotBlank(message: 'Le subreddit est requis')],
+                'attr' => ['class' => 'form-select'],
             ])
             ->add('title', TextType::class, [
                 'label' => 'Titre',
@@ -36,6 +43,7 @@ class RedditPostType extends AbstractType
                 ],
                 'expanded' => true,
                 'data' => 'text',
+                'attr' => ['class' => 'form-check-inline'],
             ])
             ->add('text', TextareaType::class, [
                 'label' => 'Contenu',
