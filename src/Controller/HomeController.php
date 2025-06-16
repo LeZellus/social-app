@@ -15,4 +15,12 @@ final class HomeController extends AbstractController
             'controller_name' => 'HomeController',
         ]);
     }
+
+    #[Route('/reddit/{subreddit}', name: 'reddit_posts')]
+    public function redditPosts(string $subreddit, RedditApiService $reddit): Response
+    {
+        $posts = $reddit->getSubredditPosts($subreddit, 'hot', 10);
+        
+        return $this->json($posts);
+    }
 }

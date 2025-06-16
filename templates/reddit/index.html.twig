@@ -1,0 +1,47 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Reddit Manager{% endblock %}
+
+{% block body %}
+<div class="container mt-4">
+    <h1>Reddit Manager</h1>
+    
+    {% for message in app.flashes('success') %}
+        <div class="alert alert-success">{{ message }}</div>
+    {% endfor %}
+    
+    {% for message in app.flashes('error') %}
+        <div class="alert alert-danger">{{ message }}</div>
+    {% endfor %}
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Créer un post</h5>
+                </div>
+                <div class="card-body">
+                    <p>Postez du contenu sur Reddit</p>
+                    <a href="{{ path('reddit_create_post') }}" class="btn btn-primary">Nouveau post</a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Voir les posts</h5>
+                </div>
+                <div class="card-body">
+                    <form action="{{ path('reddit_posts', {subreddit: 'PLACEHOLDER'}) }}" method="get" onsubmit="this.action = this.action.replace('PLACEHOLDER', this.subreddit.value)">
+                        <div class="mb-3">
+                            <input type="text" name="subreddit" class="form-control" placeholder="Nom du subreddit" required>
+                        </div>
+                        <button type="submit" class="btn btn-secondary">Voir les posts</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
