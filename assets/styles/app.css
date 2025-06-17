@@ -2,8 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-@import "./components/_button.css";
-
 body {
     background-color: skyblue;
 }
