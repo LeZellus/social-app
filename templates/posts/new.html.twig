@@ -134,30 +134,54 @@
 </div>
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Gestion des checkboxes personnalisées
+document.addEventListener('turbo:load', function() {
+    // Gestion des checkboxes personnalisées pour les destinations
     const checkboxes = document.querySelectorAll('.destination-checkbox');
+    
     checkboxes.forEach(checkbox => {
         const label = checkbox.closest('label');
+        if (!label) return;
+        
         const indicator = label.querySelector('.checkbox-indicator');
         const checkmark = label.querySelector('.checkmark');
         
         function updateCheckbox() {
             if (checkbox.checked) {
-                indicator.classList.add('bg-blue-600', 'border-blue-600');
-                indicator.classList.remove('bg-white', 'dark:bg-gray-700', 'border-gray-300', 'dark:border-gray-600');
-                checkmark.classList.remove('hidden');
+                if (indicator) {
+                    indicator.classList.add('bg-blue-600', 'border-blue-600');
+                    indicator.classList.remove('bg-white', 'dark:bg-gray-700', 'border-gray-300', 'dark:border-gray-600');
+                }
+                if (checkmark) {
+                    checkmark.classList.remove('hidden');
+                }
                 label.classList.add('ring-2', 'ring-blue-500', 'border-blue-300');
             } else {
-                indicator.classList.remove('bg-blue-600', 'border-blue-600');
-                indicator.classList.add('bg-white', 'dark:bg-gray-700', 'border-gray-300', 'dark:border-gray-600');
-                checkmark.classList.add('hidden');
+                if (indicator) {
+                    indicator.classList.remove('bg-blue-600', 'border-blue-600');
+                    indicator.classList.add('bg-white', 'dark:bg-gray-700', 'border-gray-300', 'dark:border-gray-600');
+                }
+                if (checkmark) {
+                    checkmark.classList.add('hidden');
+                }
                 label.classList.remove('ring-2', 'ring-blue-500', 'border-blue-300');
             }
         }
         
+        // Initialiser l'état au chargement
         updateCheckbox();
+        
+        // Écouter les changements
         checkbox.addEventListener('change', updateCheckbox);
+        
+        // Permettre de cliquer sur le label pour changer l'état
+        label.addEventListener('click', function(e) {
+            // Si on clique directement sur la checkbox, laisser le comportement par défaut
+            if (e.target === checkbox) return;
+            
+            e.preventDefault();
+            checkbox.checked = !checkbox.checked;
+            checkbox.dispatchEvent(new Event('change'));
+        });
     });
 
     // Gestion de la programmation
@@ -165,42 +189,49 @@ document.addEventListener('DOMContentLoaded', function() {
     const scheduledContainer = document.getElementById('scheduled-date-container');
     const submitText = document.getElementById('submit-text');
     
-    publishOption.addEventListener('change', function() {
-        if (this.value === 'schedule') {
-            scheduledContainer.style.display = 'block';
-            submitText.textContent = 'Programmer le post';
-        } else {
-            scheduledContainer.style.display = 'none';
-            if (this.value === 'now') {
-                submitText.textContent = 'Publier maintenant';
+    if (publishOption && scheduledContainer && submitText) {
+        publishOption.addEventListener('change', function() {
+            if (this.value === 'schedule') {
+                scheduledContainer.style.display = 'block';
+                submitText.textContent = 'Programmer le post';
             } else {
-                submitText.textContent = 'Sauvegarder en brouillon';
+                scheduledContainer.style.display = 'none';
+                if (this.value === 'now') {
+                    submitText.textContent = 'Publier maintenant';
+                } else {
+                    submitText.textContent = 'Sauvegarder en brouillon';
+                }
             }
-        }
-    });
+        });
+    }
 
     // Preview du contenu
     const titleField = document.querySelector('#post_title');
     const contentField = document.querySelector('#post_content');
     const previewContent = document.getElementById('preview-content');
     
-    function updatePreview() {
-        const title = titleField.value.trim();
-        const content = contentField.value.trim();
-        
-        if (title || content) {
-            let preview = '';
-            if (title) preview += `<strong>${title}</strong>`;
-            if (title && content) preview += '<br><br>';
-            if (content) preview += content.substring(0, 200) + (content.length > 200 ? '...' : '');
-            previewContent.innerHTML = preview;
-        } else {
-            previewContent.textContent = 'Saisissez votre contenu pour voir l\'aperçu...';
+    if (titleField && contentField && previewContent) {
+        function updatePreview() {
+            const title = titleField.value.trim();
+            const content = contentField.value.trim();
+            
+            if (title || content) {
+                let preview = '';
+                if (title) preview += `<strong>${title}</strong>`;
+                if (title && content) preview += '<br><br>';
+                if (content) preview += content.substring(0, 200) + (content.length > 200 ? '...' : '');
+                previewContent.innerHTML = preview;
+            } else {
+                previewContent.textContent = 'Saisissez votre contenu pour voir l\'aperçu...';
+            }
         }
+        
+        titleField.addEventListener('input', updatePreview);
+        contentField.addEventListener('input', updatePreview);
+        
+        // Initialiser le preview
+        updatePreview();
     }
-    
-    titleField.addEventListener('input', updatePreview);
-    contentField.addEventListener('input', updatePreview);
 });
 </script>
 {% endblock %}
