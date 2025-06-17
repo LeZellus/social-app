@@ -14,7 +14,7 @@
             'attr': {
                 'class': 'space-y-6', 
                 'id': 'post-form',
-                'data-controller': 'preview'
+                'data-controller': 'preview publish'
             }
         }) }}
         
@@ -48,135 +48,151 @@
             </div>
         </div>
 
-        {% if not is_edit %}
-            <!-- Section Publication avec contrôleur Stimulus -->
-            <div data-controller="publish">
-                <!-- Destinations -->
-                {% if form.destinations is defined %}
-                    <div class="mb-6">
-                        {{ form_label(form.destinations, 'Publier sur', {'label_attr': {'class': 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3'}}) }}
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {% for destination in form.destinations %}
-                                {% set destinationChoice = destination.parent.vars.choices[destination.vars.value] %}
-                                {% if destinationChoice is defined %}
-                                    <div class="relative">
-                                        <label data-controller="checkbox" 
-                                            data-action="click->checkbox#toggle"
-                                            class="flex items-center p-4 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors">
-                                            {{ form_widget(destination, {
-                                                'attr': {
-                                                    'class': 'sr-only destination-checkbox',
-                                                    'data-checkbox-target': 'checkbox',
-                                                    'data-action': 'change->checkbox#checkboxChanged'
-                                                }
-                                            }) }}
-                                            <div class="flex items-center w-full">
-                                                <div class="flex-shrink-0 mr-3">
-                                                    {% set platform = destinationChoice.data.socialAccount.platform %}
-                                                    {% if platform == 'reddit' %}
-                                                        <div class="w-10 h-10 bg-orange-500 rounded-full flex items-center justify-center">
-                                                            <span class="text-white text-sm font-bold">R</span>
-                                                        </div>
-                                                    {% elseif platform == 'twitter' %}
-                                                        <div class="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center">
-                                                            <span class="text-white text-sm font-bold">T</span>
-                                                        </div>
-                                                    {% else %}
-                                                        <div class="w-10 h-10 bg-gray-500 rounded-full flex items-center justify-center">
-                                                            <span class="text-white text-sm font-bold">?</span>
-                                                        </div>
-                                                    {% endif %}
-                                                </div>
-                                                <div class="flex-1 min-w-0">
-                                                    <div class="text-sm font-medium text-gray-900 dark:text-white">
-                                                        {{ destinationChoice.data.displayName }}
-                                                    </div>
-                                                    <div class="text-sm text-gray-500 dark:text-gray-400">
-                                                        {{ platform|title }} - {{ destinationChoice.data.name }}
-                                                    </div>
-                                                </div>
-                                                <div class="flex-shrink-0 ml-3">
-                                                    <div data-checkbox-target="indicator"
-                                                        class="checkbox-indicator w-5 h-5 border-2 border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 flex items-center justify-center">
-                                                        <svg data-checkbox-target="checkmark"
-                                                            class="w-3 h-3 text-white hidden" 
-                                                            fill="currentColor" 
-                                                            viewBox="0 0 20 20">
-                                                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
-                                                        </svg>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </label>
-                                    </div>
-                                {% endif %}
-                            {% endfor %}
-                        </div>
-                        {{ form_errors(form.destinations, {'error_attr': {'class': 'text-red-600 dark:text-red-400 text-sm mt-1'}}) }}
+        <!-- Section Publication (disponible en création ET édition) -->
+        <!-- Destinations -->
+        {% if form.destinations is defined %}
+            <div class="mb-6">
+                {{ form_label(form.destinations, is_edit ? 'Modifier les destinations' : 'Publier sur', {'label_attr': {'class': 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3'}}) }}
+                
+                {% if is_edit and post is defined and post.postPublications|length > 0 %}
+                    <div class="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                        <p class="text-sm text-blue-800 dark:text-blue-200">
+                            <strong>Note :</strong> Les publications déjà effectuées ne seront pas supprimées. 
+                            Seules les nouvelles destinations sélectionnées seront ajoutées.
+                        </p>
                     </div>
                 {% endif %}
-
-                <!-- Options de publication -->
-                {% if form.publishOption is defined %}
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
-                            {{ form_label(form.publishOption, 'Quand publier', {'label_attr': {'class': 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2'}}) }}
-                            {{ form_widget(form.publishOption, {
-                                'attr': {
-                                    'class': 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white',
-                                    'data-publish-target': 'publishOption',
-                                    'data-action': 'change->publish#optionChanged'
-                                }
-                            }) }}
-                            {{ form_errors(form.publishOption, {'error_attr': {'class': 'text-red-600 dark:text-red-400 text-sm mt-1'}}) }}
-                        </div>
-
-                        <!-- Date de publication programmée -->
-                        {% if form.scheduledAt is defined %}
-                            <div data-publish-target="scheduledContainer" style="display: none;">
-                                {{ form_label(form.scheduledAt, 'Date et heure de publication', {'label_attr': {'class': 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2'}}) }}
-                                {{ form_widget(form.scheduledAt, {
-                                    'attr': {
-                                        'class': 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white'
-                                    }
-                                }) }}
-                                {{ form_errors(form.scheduledAt, {'error_attr': {'class': 'text-red-600 dark:text-red-400 text-sm mt-1'}}) }}
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {% for destination in form.destinations %}
+                        {% set destinationChoice = destination.parent.vars.choices[destination.vars.value] %}
+                        {% if destinationChoice is defined %}
+                            <div class="relative">
+                                <label data-controller="checkbox" 
+                                    data-action="click->checkbox#toggle"
+                                    class="flex items-center p-4 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors">
+                                    {{ form_widget(destination, {
+                                        'attr': {
+                                            'class': 'sr-only destination-checkbox',
+                                            'data-checkbox-target': 'checkbox',
+                                            'data-action': 'change->checkbox#checkboxChanged'
+                                        }
+                                    }) }}
+                                    <div class="flex items-center w-full">
+                                        <div class="flex-shrink-0 mr-3">
+                                            {% set platform = destinationChoice.data.socialAccount.platform %}
+                                            {% if platform == 'reddit' %}
+                                                <div class="w-10 h-10 bg-orange-500 rounded-full flex items-center justify-center">
+                                                    <span class="text-white text-sm font-bold">R</span>
+                                                </div>
+                                            {% elseif platform == 'twitter' %}
+                                                <div class="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center">
+                                                    <span class="text-white text-sm font-bold">T</span>
+                                                </div>
+                                            {% else %}
+                                                <div class="w-10 h-10 bg-gray-500 rounded-full flex items-center justify-center">
+                                                    <span class="text-white text-sm font-bold">?</span>
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                        <div class="flex-1 min-w-0">
+                                            <div class="text-sm font-medium text-gray-900 dark:text-white">
+                                                {{ destinationChoice.data.displayName }}
+                                            </div>
+                                            <div class="text-sm text-gray-500 dark:text-gray-400">
+                                                {{ platform|title }} - {{ destinationChoice.data.name }}
+                                            </div>
+                                        </div>
+                                        <div class="flex-shrink-0 ml-3">
+                                            <div data-checkbox-target="indicator"
+                                                class="checkbox-indicator w-5 h-5 border-2 border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 flex items-center justify-center">
+                                                <svg data-checkbox-target="checkmark"
+                                                    class="w-3 h-3 text-white hidden" 
+                                                    fill="currentColor" 
+                                                    viewBox="0 0 20 20">
+                                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                                                </svg>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </label>
                             </div>
                         {% endif %}
+                    {% endfor %}
+                </div>
+                {{ form_errors(form.destinations, {'error_attr': {'class': 'text-red-600 dark:text-red-400 text-sm mt-1'}}) }}
+            </div>
+        {% endif %}
+
+        <!-- Options de publication -->
+        {% if form.publishOption is defined %}
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    {{ form_label(form.publishOption, 'Quand publier', {'label_attr': {'class': 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2'}}) }}
+                    {{ form_widget(form.publishOption, {
+                        'attr': {
+                            'class': 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white',
+                            'data-publish-target': 'publishOption',
+                            'data-action': 'change->publish#optionChanged'
+                        }
+                    }) }}
+                    {{ form_errors(form.publishOption, {'error_attr': {'class': 'text-red-600 dark:text-red-400 text-sm mt-1'}}) }}
+                </div>
+
+                <!-- Date de publication programmée -->
+                {% if form.scheduledAt is defined %}
+                    <div data-publish-target="scheduledContainer" 
+                         style="display: {{ (form.publishOption.vars.value == 'schedule' or (is_edit and post and post.scheduledAt)) ? 'block' : 'none' }};">
+                        {{ form_label(form.scheduledAt, 'Date et heure de publication', {'label_attr': {'class': 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2'}}) }}
+                        {{ form_widget(form.scheduledAt, {
+                            'attr': {
+                                'class': 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white'
+                            }
+                        }) }}
+                        {{ form_errors(form.scheduledAt, {'error_attr': {'class': 'text-red-600 dark:text-red-400 text-sm mt-1'}}) }}
                     </div>
                 {% endif %}
             </div>
         {% endif %}
 
         {% if is_edit and post is defined and post.postPublications|length > 0 %}
-            <!-- Publications existantes (edit seulement) -->
-            <div>
-                <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-3">Publications existantes</h3>
+            <!-- Publications existantes (édition seulement) -->
+            <div class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
+                <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-3">Publications actuelles</h3>
                 <div class="space-y-3">
                     {% for publication in post.postPublications %}
-                        <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                        <div class="flex items-center justify-between p-3 bg-white dark:bg-gray-700 rounded-lg border">
                             <div class="flex items-center">
                                 <div class="w-8 h-8 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center mr-3">
-                                    <span class="text-blue-600 dark:text-blue-300 text-sm font-medium">
-                                        {{ publication.socialAccount.platform|upper|slice(0,2) }}
-                                    </span>
+                                    {% set platform = publication.socialAccount.platform %}
+                                    {% if platform == 'reddit' %}
+                                        <span class="text-orange-600 dark:text-orange-300 text-sm font-bold">R</span>
+                                    {% elseif platform == 'twitter' %}
+                                        <span class="text-blue-600 dark:text-blue-300 text-sm font-bold">T</span>
+                                    {% else %}
+                                        <span class="text-gray-600 dark:text-gray-300 text-sm font-bold">?</span>
+                                    {% endif %}
                                 </div>
                                 <div>
                                     <p class="text-sm font-medium text-gray-900 dark:text-white">
                                         {{ publication.destination }}
                                     </p>
                                     <p class="text-xs text-gray-500 dark:text-gray-400">
-                                        {{ publication.socialAccount.platform|title }}
+                                        {{ platform|title }}
                                     </p>
                                 </div>
                             </div>
                             {% if publication.status == 'published' %}
                                 <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
-                                    Publié
+                                    ✓ Publié
                                 </span>
                             {% elseif publication.status == 'failed' %}
                                 <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">
-                                    Échec
+                                    ✗ Échec
+                                </span>
+                            {% elseif publication.status == 'scheduled' %}
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                                    🕒 Programmé
                                 </span>
                             {% else %}
                                 <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200">
@@ -186,8 +202,9 @@
                         </div>
                     {% endfor %}
                 </div>
-                <div class="text-sm text-gray-500 dark:text-gray-400 mt-2">
-                    <strong>Note :</strong> Modifier le contenu n'affectera pas les publications déjà effectuées.
+                <div class="text-sm text-yellow-800 dark:text-yellow-200 mt-3">
+                    <strong>⚠️ Attention :</strong> Les publications déjà réussies ne seront pas modifiées. 
+                    Seules les publications en attente, programmées ou échouées peuvent être mises à jour.
                 </div>
             </div>
         {% endif %}
@@ -197,7 +214,12 @@
             <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Aperçu</h3>
             <div class="prose prose-sm max-w-none text-gray-900 dark:text-gray-100" 
                  data-preview-target="preview">
-                <em class="text-gray-500">Saisissez votre contenu pour voir l'aperçu...</em>
+                <div data-preview-target="titlePreview" class="font-bold text-lg mb-2">
+                    {% if form.title.vars.value %}{{ form.title.vars.value }}{% else %}<em class="text-gray-400">Titre...</em>{% endif %}
+                </div>
+                <div data-preview-target="contentPreview" class="whitespace-pre-wrap">
+                    {% if form.content.vars.value %}{{ form.content.vars.value }}{% else %}<em class="text-gray-400">Saisissez votre contenu pour voir l'aperçu...</em>{% endif %}
+                </div>
             </div>
         </div>
 
@@ -210,7 +232,11 @@
             <button type="submit" 
                     class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors">
                 <span data-publish-target="submitText">
-                    {{ is_edit ? 'Sauvegarder les modifications' : 'Créer le post' }}
+                    {% if is_edit %}
+                        Sauvegarder les modifications
+                    {% else %}
+                        Créer le post
+                    {% endif %}
                 </span>
             </button>
         </div>
