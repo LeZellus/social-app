@@ -14,7 +14,6 @@ class PublicationService
         private EntityManagerInterface $entityManager,
         private DestinationRepository $destinationRepository,
         private RedditApiService $redditApi
-        // Ajouter d'autres services API au besoin
     ) {}
 
     /**
@@ -84,11 +83,10 @@ class PublicationService
     }
 
     /**
-     * MÉTHODE MANQUANTE : Récupérer la destination pour une publication
+     * Récupérer la destination pour une publication
      */
     private function getDestinationForPublication(PostPublication $publication): Destination
     {
-        // Récupérer la destination via le nom stocké dans la publication
         $destination = $this->destinationRepository->findOneBy([
             'name' => $publication->getDestination(),
             'user' => $publication->getPost()->getUser(),
@@ -158,37 +156,45 @@ class PublicationService
     }
 
     /**
-     * Publier une publication spécifique
+     * 🔥 FIX : Publier une publication spécifique avec gestion d'erreurs améliorée
      */
     public function publishSinglePublication(PostPublication $publication): array
     {
         try {
-            // ✅ VALIDATION BASIQUE (on peut ajouter PostValidationService plus tard)
-            $destination = $this->getDestinationForPublication($publication);
-            
-            // Validation simple pour l'instant
+            // ✅ VALIDATION BASIQUE
             if (empty($publication->getAdaptedTitle()) && empty($publication->getAdaptedContent())) {
                 $publication->setStatus('failed');
                 $publication->setErrorMessage('Contenu vide');
                 return ['success' => false, 'error' => 'Contenu vide'];
             }
 
-            $platform = $publication->getSocialAccount()->getPlatform();
+            // ✅ VÉRIFICATION TOKEN
+            $socialAccount = $publication->getSocialAccount();
+            if (!$socialAccount->isTokenValid()) {
+                $publication->setStatus('failed');
+                $publication->setErrorMessage('Token invalide ou expiré');
+                return ['success' => false, 'error' => 'Token invalide ou expiré'];
+            }
+
+            $platform = $socialAccount->getPlatform();
             
             switch ($platform) {
                 case 'reddit':
-                    return $this->publishToReddit($publication, $destination);
+                    return $this->publishToReddit($publication);
                     
                 case 'twitter':
-                    return $this->publishToTwitter($publication, $destination);
+                    return $this->publishToTwitter($publication);
                     
                 default:
                     throw new \InvalidArgumentException("Plateforme non supportée: {$platform}");
             }
             
         } catch (\Exception $e) {
+            error_log("❌ Erreur publication ID {$publication->getId()}: " . $e->getMessage());
+            
             $publication->setStatus('failed');
             $publication->setErrorMessage($e->getMessage());
+            $publication->incrementRetryCount();
             
             return [
                 'success' => false,
@@ -197,31 +203,89 @@ class PublicationService
         }
     }
 
-    private function publishToReddit(PostPublication $publication, Destination $destination): array
+    /**
+     * 🔥 FIX : Publication Reddit avec gestion d'erreurs complète
+     */
+    private function publishToReddit(PostPublication $publication): array
     {
         try {
+            error_log("🚀 Publication Reddit - Début pour publication ID: " . $publication->getId());
+            
+            // ✅ EXTRAIRE le subreddit du nom de destination
+            $destinationName = $publication->getDestination(); // Ex: "r/test"
+            $subreddit = str_replace('r/', '', $destinationName); // Ex: "test"
+            
+            error_log("📍 Destination: {$destinationName}, Subreddit: {$subreddit}");
+            error_log("📝 Titre: " . $publication->getAdaptedTitle());
+            error_log("📄 Contenu: " . substr($publication->getAdaptedContent(), 0, 100) . "...");
+            
+            // ✅ APPEL API REDDIT
             $result = $this->redditApi->submitPost(
                 $publication->getAdaptedTitle(),
                 $publication->getAdaptedContent(),
-                $destination->getName(), // subreddit
+                $subreddit, // IMPORTANT : passer juste le nom du subreddit, pas "r/test"
                 $publication->getSocialAccount()
             );
-
-            $publication->setStatus('published');
-            $publication->setPublishedAt(new \DateTimeImmutable());
-            $publication->setPlatformUrl($result['url'] ?? null);
-
-            return ['success' => true, 'url' => $result['url'] ?? null];
+            
+            error_log("✅ Réponse Reddit: " . json_encode($result));
+            
+            // ✅ TRAITEMENT RÉPONSE
+            if (isset($result['json']['errors']) && !empty($result['json']['errors'])) {
+                // Reddit a retourné des erreurs
+                $errors = $result['json']['errors'];
+                $errorMessage = 'Erreurs Reddit: ' . json_encode($errors);
+                
+                $publication->setStatus('failed');
+                $publication->setErrorMessage($errorMessage);
+                $publication->setPlatformResponse($result);
+                
+                error_log("❌ Erreurs Reddit: " . $errorMessage);
+                
+                return ['success' => false, 'error' => $errorMessage];
+            }
+            
+            // ✅ SUCCÈS
+            $postData = $result['json']['data'] ?? null;
+            $platformUrl = null;
+            $platformPostId = null;
+            
+            if ($postData) {
+                $platformPostId = $postData['name'] ?? $postData['id'] ?? null;
+                $platformUrl = $postData['url'] ?? null;
+                
+                // Construire l'URL si pas fournie
+                if (!$platformUrl && isset($postData['permalink'])) {
+                    $platformUrl = 'https://reddit.com' . $postData['permalink'];
+                }
+            }
+            
+            $publication->markAsPublished(
+                $platformPostId ?: 'unknown',
+                $platformUrl ?: '',
+                $result
+            );
+            
+            error_log("✅ Publication Reddit réussie - URL: " . ($platformUrl ?: 'N/A'));
+            
+            return [
+                'success' => true, 
+                'url' => $platformUrl,
+                'platform_id' => $platformPostId
+            ];
             
         } catch (\Exception $e) {
-            $publication->setStatus('failed');
-            $publication->setErrorMessage($e->getMessage());
+            error_log("❌ Exception Reddit: " . $e->getMessage());
+            error_log("❌ Stack trace: " . $e->getTraceAsString());
             
-            return ['success' => false, 'error' => $e->getMessage()];
+            $publication->setStatus('failed');
+            $publication->setErrorMessage('Erreur API Reddit: ' . $e->getMessage());
+            $publication->incrementRetryCount();
+            
+            return ['success' => false, 'error' => 'Erreur API Reddit: ' . $e->getMessage()];
         }
     }
 
-    private function publishToTwitter(PostPublication $publication, Destination $destination): array
+    private function publishToTwitter(PostPublication $publication): array
     {
         // TODO: Implémenter l'API Twitter
         throw new \Exception('API Twitter pas encore implémentée');

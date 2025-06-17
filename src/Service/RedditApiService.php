@@ -119,27 +119,80 @@ class RedditApiService
 
     public function submitPost(string $title, string $text, string $subreddit, SocialAccount $account): array
     {
+        error_log("🚀 RedditApiService::submitPost - Début");
+        error_log("📍 Subreddit: {$subreddit}");
+        error_log("📝 Titre: {$title}");
+        error_log("📄 Contenu: " . substr($text, 0, 100) . "...");
+        
         $credentials = $this->getUserCredentials($account->getUser(), 'reddit');
         if (!$credentials) {
             throw new \Exception('Aucune clef Reddit configurée');
         }
 
-        $response = $this->httpClient->request('POST', self::OAUTH_URL . '/api/submit', [
-            'headers' => [
-                'Authorization' => 'Bearer ' . $account->getAccessToken(),
-                'Content-Type' => 'application/x-www-form-urlencoded',
-                'User-Agent' => $credentials->getUserAgent() ?: 'SocialApp/1.0',
-            ],
-            'body' => http_build_query([
-                'api_type' => 'json',
-                'kind' => 'self',
-                'title' => $title,
-                'text' => $text,
-                'sr' => $subreddit,
-            ]),
-        ]);
+        // ✅ VÉRIFICATION TOKEN
+        if (!$account->getAccessToken()) {
+            throw new \Exception('Aucun token d\'accès Reddit disponible');
+        }
 
-        return $response->toArray();
+        error_log("🔑 Token disponible: " . substr($account->getAccessToken(), 0, 20) . "...");
+
+        try {
+            $response = $this->httpClient->request('POST', self::OAUTH_URL . '/api/submit', [
+                'headers' => [
+                    'Authorization' => 'Bearer ' . $account->getAccessToken(),
+                    'Content-Type' => 'application/x-www-form-urlencoded',
+                    'User-Agent' => $credentials->getUserAgent() ?: 'SocialApp/1.0',
+                ],
+                'body' => http_build_query([
+                    'api_type' => 'json',
+                    'kind' => 'self',
+                    'title' => $title,
+                    'text' => $text,
+                    'sr' => $subreddit, // IMPORTANT : juste le nom, pas "r/subreddit"
+                    'resubmit' => 'true'
+                ]),
+            ]);
+
+            $responseData = $response->toArray();
+            
+            error_log("📡 Réponse HTTP Status: " . $response->getStatusCode());
+            error_log("📡 Réponse Reddit: " . json_encode($responseData));
+
+            // ✅ VÉRIFICATION ERREURS REDDIT
+            if (isset($responseData['json']['errors']) && !empty($responseData['json']['errors'])) {
+                $errors = $responseData['json']['errors'];
+                error_log("❌ Erreurs Reddit détectées: " . json_encode($errors));
+                
+                // Garder la réponse complète pour debug
+                return $responseData;
+            }
+
+            // ✅ SUCCÈS
+            if (isset($responseData['json']['data'])) {
+                error_log("✅ Soumission Reddit réussie");
+                return $responseData;
+            }
+
+            // ✅ RÉPONSE INATTENDUE
+            error_log("⚠️ Réponse Reddit inattendue (pas d'erreur mais pas de data)");
+            return $responseData;
+
+        } catch (\Exception $e) {
+            error_log("❌ Exception HTTP Reddit: " . $e->getMessage());
+            
+            // Si c'est une erreur HTTP, essayer de récupérer le contenu
+            if (method_exists($e, 'getResponse')) {
+                try {
+                    $errorResponse = $e->getResponse();
+                    $errorContent = $errorResponse->getContent(false);
+                    error_log("❌ Contenu erreur Reddit: " . $errorContent);
+                } catch (\Exception $innerE) {
+                    error_log("❌ Impossible de lire le contenu d'erreur: " . $innerE->getMessage());
+                }
+            }
+            
+            throw $e;
+        }
     }
 
     private function safeSaveSocialAccount(User $user, array $userInfo, array $tokenData): SocialAccount

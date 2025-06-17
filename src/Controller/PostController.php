@@ -49,7 +49,7 @@ class PostController extends AbstractController
             $publishOption = $form->get('publishOption')->getData();
             $selectedDestinations = $form->get('destinations')->getData();
             
-            // Définir le statut selon l'option choisie
+            // 🔥 FIX : Définir le statut AVANT de sauvegarder
             switch ($publishOption) {
                 case 'now':
                     $post->setStatus('published');
@@ -67,12 +67,12 @@ class PostController extends AbstractController
                     break;
             }
 
+            // Sauvegarder le post FIRST
             $entityManager->persist($post);
             $entityManager->flush();
 
-            // 🔥 FIX CRITIQUE : Gestion des publications
+            // 🔥 FIX : Créer les publications seulement si des destinations sont sélectionnées
             if (!empty($selectedDestinations)) {
-                // Convertir les destinations en IDs
                 $destinationIds = [];
                 foreach ($selectedDestinations as $destination) {
                     $destinationIds[] = $destination->getId();
@@ -81,43 +81,60 @@ class PostController extends AbstractController
                 // Créer les publications
                 $publications = $this->publicationService->createPublicationsForDestinations($post, $destinationIds);
                 
-                // 🔥 NOUVEAU : Si publication immédiate, publier maintenant
+                // 🔥 FIX CRITIQUE : Publier immédiatement si "now" est sélectionné
                 if ($publishOption === 'now') {
+                    // ✅ RECHARGEMENT : Récupérer les publications depuis la base pour éviter les problèmes de cache
+                    $entityManager->refresh($post);
+                    
                     $results = [];
+                    $totalPublications = 0;
+                    $successfulPublications = 0;
                     
-                    // Récupérer les publications pending du post
-                    $pendingPublications = $post->getPostPublications()->filter(
-                        fn($pub) => $pub->getStatus() === 'pending'
-                    );
-                    
-                    foreach ($pendingPublications as $publication) {
-                        $result = $this->publicationService->publishSinglePublication($publication);
-                        $results[] = $result;
+                    foreach ($post->getPostPublications() as $publication) {
+                        if ($publication->getStatus() === 'pending') {
+                            $totalPublications++;
+                            $result = $this->publicationService->publishSinglePublication($publication);
+                            $results[] = $result;
+                            
+                            if ($result['success']) {
+                                $successfulPublications++;
+                            }
+                        }
                     }
                     
-                    // Flush pour sauvegarder les changements de statut
+                    // Sauvegarder les changements de statut
                     $entityManager->flush();
                     
-                    $successCount = count(array_filter($results, fn($r) => $r['success']));
-                    $totalCount = count($results);
-                    
-                    if ($successCount === $totalCount) {
-                        $this->addFlash('success', "Post publié avec succès sur {$successCount} destination(s) !");
+                    // Messages utilisateur
+                    if ($totalPublications === 0) {
+                        $this->addFlash('warning', 'Aucune publication à effectuer.');
+                    } elseif ($successfulPublications === $totalPublications) {
+                        $this->addFlash('success', "Post publié avec succès sur {$successfulPublications} destination(s) !");
                     } else {
-                        $this->addFlash('warning', "Post publié sur {$successCount}/{$totalCount} destination(s).");
+                        $this->addFlash('warning', "Post publié sur {$successfulPublications}/{$totalPublications} destination(s).");
                         
-                        // Afficher les erreurs
-                        foreach ($results as $result) {
+                        // Afficher les erreurs détaillées
+                        foreach ($results as $index => $result) {
                             if (!$result['success']) {
-                                $this->addFlash('error', $result['error']);
+                                $this->addFlash('error', "Erreur publication #{$index}: " . $result['error']);
                             }
                         }
                     }
                 } else {
-                    $this->addFlash('success', 'Post créé avec succès !');
+                    $destinationCount = count($selectedDestinations);
+                    if ($publishOption === 'schedule') {
+                        $this->addFlash('success', "Post programmé pour {$destinationCount} destination(s) !");
+                    } else {
+                        $this->addFlash('success', "Post créé en brouillon pour {$destinationCount} destination(s) !");
+                    }
                 }
             } else {
-                $this->addFlash('success', 'Post créé en brouillon !');
+                // Aucune destination sélectionnée
+                if ($publishOption === 'draft') {
+                    $this->addFlash('success', 'Post créé en brouillon !');
+                } else {
+                    $this->addFlash('warning', 'Post créé mais aucune destination sélectionnée pour la publication.');
+                }
             }
 
             return $this->redirectToRoute('app_posts');
@@ -170,25 +187,32 @@ class PostController extends AbstractController
                 
                 // Si publication immédiate, publier maintenant
                 if ($publishOption === 'now') {
-                    $pendingPublications = $post->getPostPublications()->filter(
-                        fn($pub) => $pub->getStatus() === 'pending'
-                    );
+                    $entityManager->refresh($post);
                     
                     $results = [];
-                    foreach ($pendingPublications as $publication) {
-                        $result = $this->publicationService->publishSinglePublication($publication);
-                        $results[] = $result;
+                    $totalPublications = 0;
+                    $successfulPublications = 0;
+                    
+                    foreach ($post->getPostPublications() as $publication) {
+                        if ($publication->getStatus() === 'pending') {
+                            $totalPublications++;
+                            $result = $this->publicationService->publishSinglePublication($publication);
+                            $results[] = $result;
+                            
+                            if ($result['success']) {
+                                $successfulPublications++;
+                            }
+                        }
                     }
                     
                     $entityManager->flush();
                     
-                    $successCount = count(array_filter($results, fn($r) => $r['success']));
-                    $totalCount = count($results);
-                    
-                    if ($successCount === $totalCount) {
-                        $this->addFlash('success', "Post modifié et publié sur {$successCount} destination(s) !");
+                    if ($totalPublications === 0) {
+                        $this->addFlash('info', 'Post modifié - aucune nouvelle publication à effectuer.');
+                    } elseif ($successfulPublications === $totalPublications) {
+                        $this->addFlash('success', "Post modifié et publié sur {$successfulPublications} destination(s) !");
                     } else {
-                        $this->addFlash('warning', "Post publié sur {$successCount}/{$totalCount} destination(s).");
+                        $this->addFlash('warning', "Post publié sur {$successfulPublications}/{$totalPublications} destination(s).");
                     }
                 } else {
                     $this->addFlash('success', 'Post modifié avec succès !');
