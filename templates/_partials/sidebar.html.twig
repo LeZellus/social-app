@@ -1,53 +1,91 @@
-<button data-drawer-target="default-sidebar" data-drawer-toggle="default-sidebar" aria-controls="default-sidebar" type="button" class="inline-flex items-center p-2 mt-2 ms-3 text-sm text-gray-500 rounded-lg sm:hidden hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-200 dark:text-gray-400 dark:hover:bg-gray-700 dark:focus:ring-gray-600">
-   <span class="sr-only">Open sidebar</span>
-   {{ ux_icon('bi:list', {width: 22, height: 22}) }}
-</button>
+<div data-controller="sidebar" data-action="keydown@window->sidebar#handleKeydown">
+    <!-- Bouton pour ouvrir la sidebar (mobile uniquement) -->
+    <button data-action="click->sidebar#toggle"
+            type="button" 
+            class="inline-flex items-center p-2 mt-2 ms-3 text-sm text-gray-500 rounded-lg sm:hidden hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-200 dark:text-gray-400 dark:hover:bg-gray-700 dark:focus:ring-gray-600">
+        <span class="sr-only">Open sidebar</span>
+        {{ ux_icon('bi:list', {width: 22, height: 22}) }}
+    </button>
 
-<aside id="default-sidebar" class="fixed top-0 left-0 z-40 w-64 h-screen transition-transform -translate-x-full sm:translate-x-0" aria-label="Sidebar">
-   <div class="h-full px-3 py-4 overflow-y-auto bg-gray-50 dark:bg-gray-800">
-      <ul class="space-y-2 font-medium text-gray-900 dark:text-white">
-         <li>
-            <a href="{{ path('app_home') }}" class="flex items-center p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 group">
-                {{ ux_icon('bi:house', {width: 22, height: 22}) }}
-                <span class="ms-3">Dashboard</span>
-            </a>
-         </li>
-         <li>
-            <a href="{{ path('app_post_new') }}" class="flex items-center p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 group">
-                {{ ux_icon('bi:pencil-square', {width: 22, height: 22}) }}
-                <span class="flex-1 ms-3 whitespace-nowrap">Créer un post</span>
-            </a>
-         </li>
-         <li>
-            <a href="{{ path('app_posts') }}" class="flex items-center p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 group">
-                {{ ux_icon('bi:grid', {width: 22, height: 22}) }}
-                <span class="flex-1 ms-3 whitespace-nowrap">Mes posts</span>
-            </a>
-         </li>
-         <li>
-            <a href="{{ path('app_social_accounts') }}" class="flex items-center p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 group">
-                {{ ux_icon('bi:link-45deg', {width: 22, height: 22}) }}
-                <span class="flex-1 ms-3 whitespace-nowrap">Comptes connectés</span>
-            </a>
-         </li>
-         <li>
-            <a href="{{ path('app_destinations') }}" class="flex items-center p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 group">
-                {{ ux_icon('bi:broadcast', {width: 22, height: 22}) }}
-                <span class="flex-1 ms-3 whitespace-nowrap">Destinations</span>
-            </a>
-         </li>
-         <li>
-            <a href="{{ path('app_profile') }}" class="flex items-center p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 group">
-                {{ ux_icon('bi:person', {width: 22, height: 22}) }}
-               <span class="flex-1 ms-3 whitespace-nowrap">Profil</span>
-            </a>
-         </li>
-         <li>
-            <a href="{{ path('app_api_credentials_index') }}" class="flex items-center p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 group">
-                {{ ux_icon('bi:key', {width: 22, height: 22}) }}
-               <span class="flex-1 ms-3 whitespace-nowrap">Credentials</span>
-            </a>
-         </li>
-      </ul>
-   </div>
-</aside>
+    <!-- Sidebar -->
+    <aside data-sidebar-target="sidebar"
+           id="default-sidebar" 
+           class="fixed top-0 left-0 z-40 w-64 h-screen transition-transform -translate-x-full sm:translate-x-0" 
+           aria-label="Sidebar">
+        
+        <!-- Header de la sidebar avec bouton fermer (mobile) -->
+        <div class=" bg-white dark:bg-gray-800 flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700 sm:hidden">
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Menu</h2>
+            <button data-action="click->sidebar#close"
+                    type="button"
+                    class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm p-1.5 dark:hover:bg-gray-600 dark:hover:text-white">
+                <span class="sr-only">Close sidebar</span>
+                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                </svg>
+            </button>
+        </div>
+        
+        <!-- Contenu de la sidebar -->
+        <div class="h-full px-3 py-4 overflow-y-auto bg-gray-50 dark:bg-gray-800">
+            <ul class="space-y-2 font-medium text-gray-900 dark:text-white">
+                <li>
+                    <a href="{{ path('app_home') }}" 
+                       data-action="click->sidebar#close"
+                       class="flex items-center p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 group">
+                        {{ ux_icon('bi:house', {width: 22, height: 22}) }}
+                        <span class="ms-3">Dashboard</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ path('app_post_new') }}" 
+                       data-action="click->sidebar#close"
+                       class="flex items-center p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 group">
+                        {{ ux_icon('bi:pencil-square', {width: 22, height: 22}) }}
+                        <span class="flex-1 ms-3 whitespace-nowrap">Créer un post</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ path('app_posts') }}" 
+                       data-action="click->sidebar#close"
+                       class="flex items-center p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 group">
+                        {{ ux_icon('bi:grid', {width: 22, height: 22}) }}
+                        <span class="flex-1 ms-3 whitespace-nowrap">Mes posts</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ path('app_social_accounts') }}" 
+                       data-action="click->sidebar#close"
+                       class="flex items-center p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 group">
+                        {{ ux_icon('bi:link-45deg', {width: 22, height: 22}) }}
+                        <span class="flex-1 ms-3 whitespace-nowrap">Comptes connectés</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ path('app_destinations') }}" 
+                       data-action="click->sidebar#close"
+                       class="flex items-center p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 group">
+                        {{ ux_icon('bi:broadcast', {width: 22, height: 22}) }}
+                        <span class="flex-1 ms-3 whitespace-nowrap">Destinations</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ path('app_profile') }}" 
+                       data-action="click->sidebar#close"
+                       class="flex items-center p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 group">
+                        {{ ux_icon('bi:person', {width: 22, height: 22}) }}
+                        <span class="flex-1 ms-3 whitespace-nowrap">Profil</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ path('app_api_credentials_index') }}" 
+                       data-action="click->sidebar#close"
+                       class="flex items-center p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 group">
+                        {{ ux_icon('bi:key', {width: 22, height: 22}) }}
+                        <span class="flex-1 ms-3 whitespace-nowrap">Credentials</span>
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </aside>
+</div>
