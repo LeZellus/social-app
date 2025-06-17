@@ -23,19 +23,16 @@ class HomeController extends AbstractController
     ): Response {
         $user = $this->getUser();
 
-        // Récupérer les statistiques
-        $destinations = $destinationRepository->findBy(['user' => $user, 'isActive' => true]);
-        $recentPosts = $postRepository->findBy(['user' => $user], ['createdAt' => 'DESC'], 5);
+        // ✅ OPTIMISATION : Requêtes optimisées pour le dashboard
+        $destinations = $destinationRepository->findActiveByUser($user);
         
-        $publishedCount = $publicationRepository->count([
-            'post' => $postRepository->findBy(['user' => $user]),
-            'status' => 'published'
-        ]);
+        // ✅ NOUVEAU : Utiliser la méthode optimisée pour les posts récents
+        $recentPosts = $postRepository->findRecentByUserWithPublications($user, 5);
         
-        $pendingCount = $publicationRepository->count([
-            'post' => $postRepository->findBy(['user' => $user]),
-            'status' => 'pending'
-        ]);
+        // ✅ OPTIMISATION : Stats rapides sans charger tous les posts
+        $stats = $publicationRepository->getUserStats($user);
+        $publishedCount = $stats['published'] ?? 0;
+        $pendingCount = $stats['pending'] ?? 0;
         
         $connectedAccounts = $accountRepository->count([
             'user' => $user,

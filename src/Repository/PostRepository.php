@@ -18,6 +18,70 @@ class PostRepository extends ServiceEntityRepository
     }
 
     /**
+     * OPTIMISÉ : Trouve les posts récents avec leurs publications (évite N+1)
+     */
+    public function findRecentByUserWithPublications(User $user, int $limit = 10): array
+    {
+        return $this->createQueryBuilder('p')
+            ->leftJoin('p.postPublications', 'pp')
+            ->leftJoin('pp.socialAccount', 'sa')
+            ->addSelect('pp', 'sa') // CRUCIAL : charge les relations en une seule requête
+            ->where('p.user = :user')
+            ->orderBy('p.createdAt', 'DESC')
+            ->setMaxResults($limit)
+            ->setParameter('user', $user)
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
+     * OPTIMISÉ : Posts pour l'index avec toutes les données nécessaires
+     */
+    public function findForIndex(User $user): array
+    {
+        return $this->createQueryBuilder('p')
+            ->leftJoin('p.postPublications', 'pp')
+            ->leftJoin('pp.socialAccount', 'sa')
+            ->addSelect('pp', 'sa') // Charge tout en une fois
+            ->where('p.user = :user')
+            ->orderBy('p.createdAt', 'DESC')
+            ->setParameter('user', $user)
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
+     * NOUVEAU : Stats rapides sans charger tous les posts
+     */
+    public function getQuickStats(User $user): array
+    {
+        $qb = $this->createQueryBuilder('p');
+        
+        $result = $qb
+            ->select('p.status, COUNT(p.id) as count')
+            ->where('p.user = :user')
+            ->groupBy('p.status')
+            ->setParameter('user', $user)
+            ->getQuery()
+            ->getResult();
+
+        $stats = [
+            'total' => 0,
+            'draft' => 0,
+            'scheduled' => 0,
+            'published' => 0,
+            'failed' => 0
+        ];
+
+        foreach ($result as $row) {
+            $stats[$row['status']] = (int) $row['count'];
+            $stats['total'] += (int) $row['count'];
+        }
+
+        return $stats;
+    }
+
+    /**
      * Trouve les posts récents d'un utilisateur
      */
     public function findRecentByUser(User $user, int $limit = 10): array
@@ -109,18 +173,11 @@ class PostRepository extends ServiceEntityRepository
     }
 
     /**
-     * Trouve les posts avec leurs publications
+     * DÉPRÉCIÉ : Utiliser findForIndex() à la place
      */
     public function findWithPublications(User $user): array
     {
-        return $this->createQueryBuilder('p')
-            ->leftJoin('p.postPublications', 'pp')
-            ->addSelect('pp')
-            ->where('p.user = :user')
-            ->orderBy('p.createdAt', 'DESC')
-            ->setParameter('user', $user)
-            ->getQuery()
-            ->getResult();
+        return $this->findForIndex($user);
     }
 
     public function save(Post $entity, bool $flush = false): void

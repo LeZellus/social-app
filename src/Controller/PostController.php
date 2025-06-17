@@ -25,10 +25,8 @@ class PostController extends AbstractController
     #[Route('/', name: 'app_posts')]
     public function index(PostRepository $postRepository): Response
     {
-        $posts = $postRepository->findBy(
-            ['user' => $this->getUser()],
-            ['createdAt' => 'DESC']
-        );
+        // ✅ OPTIMISATION : Une seule requête avec tous les joins
+        $posts = $postRepository->findForIndex($this->getUser());
 
         return $this->render('posts/index.html.twig', [
             'posts' => $posts,
@@ -72,21 +70,27 @@ class PostController extends AbstractController
             $entityManager->persist($post);
             $entityManager->flush();
 
-            // 🔥 FIX : Gestion des publications
+            // 🔥 FIX CRITIQUE : Gestion des publications
             if (!empty($selectedDestinations)) {
+                // Convertir les destinations en IDs
                 $destinationIds = [];
                 foreach ($selectedDestinations as $destination) {
                     $destinationIds[] = $destination->getId();
                 }
                 
-                // Créer les publications - retourne les publications créées
+                // Créer les publications
                 $publications = $this->publicationService->createPublicationsForDestinations($post, $destinationIds);
                 
-                // 🔥 FIX : Si publication immédiate, publier directement les publications créées
+                // 🔥 NOUVEAU : Si publication immédiate, publier maintenant
                 if ($publishOption === 'now') {
                     $results = [];
                     
-                    foreach ($publications as $publication) {
+                    // Récupérer les publications pending du post
+                    $pendingPublications = $post->getPostPublications()->filter(
+                        fn($pub) => $pub->getStatus() === 'pending'
+                    );
+                    
+                    foreach ($pendingPublications as $publication) {
                         $result = $this->publicationService->publishSinglePublication($publication);
                         $results[] = $result;
                     }

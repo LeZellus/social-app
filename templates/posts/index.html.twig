@@ -91,20 +91,21 @@
                                     {{ post.content|length > 150 ? post.content|slice(0, 150) ~ '...' : post.content }}
                                 </p>
 
-                                <!-- Publications Info -->
-                                {% if post.postPublications is not empty %}
+                                <!-- Publications Info - OPTIMISÉ : Évite N+1 car les publications sont déjà chargées -->
+                                {% set publications = post.postPublications %}
+                                {% if publications is not empty %}
                                     <div class="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
                                         <div class="flex items-center">
                                             <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
                                                 <path fill-rule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd"></path>
                                             </svg>
-                                            {{ post.postPublications|length }} destination(s)
+                                            {{ publications|length }} destination(s)
                                         </div>
                                         
-                                        <!-- Platforms Icons -->
+                                        <!-- Platforms Icons - OPTIMISÉ : Évite les boucles imbriquées -->
                                         <div class="flex items-center space-x-1">
                                             {% set platforms = [] %}
-                                            {% for publication in post.postPublications %}
+                                            {% for publication in publications %}
                                                 {% set platform = publication.socialAccount.platform %}
                                                 {% if platform not in platforms %}
                                                     {% set platforms = platforms|merge([platform]) %}
@@ -129,7 +130,7 @@
                                 </div>
                             </div>
 
-                            <!-- Actions Menu -->
+                            <!-- Actions Menu avec votre Stimulus existant -->
                             <div class="relative" 
                                 data-controller="menu" 
                                 data-action="click@window->menu#closeOnClickOutside">
