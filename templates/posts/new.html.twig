@@ -232,6 +232,23 @@ document.addEventListener('turbo:load', function() {
         // Initialiser le preview
         updatePreview();
     }
+
+    // Afficher règles en temps réel selon destinations sélectionnées
+    document.querySelectorAll('.destination-checkbox').forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            if (this.checked) {
+                showDestinationRules(this.value);
+            }
+        });
+    });
+
+    function showDestinationRules(destinationId) {
+        fetch(`/api/destination/${destinationId}/rules`)
+            .then(response => response.json())
+            .then(rules => {
+                displayRulesWarnings(rules);
+            });
+    }
 });
 </script>
 {% endblock %}

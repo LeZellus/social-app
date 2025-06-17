@@ -190,4 +190,48 @@ class RedditApiService
         $session->remove('reddit_token_expiry');
         $session->remove('reddit_oauth_state');
     }
+
+    public function getSubredditRules(string $subreddit, SocialAccount $account): array
+    {
+        $credentials = $this->getUserCredentials($account->getUser(), 'reddit');
+        if (!$credentials) {
+            throw new \Exception('Aucune clef Reddit configurée');
+        }
+
+        try {
+            $response = $this->httpClient->request('GET', 
+                self::OAUTH_URL . "/r/{$subreddit}/about/rules", [
+                'headers' => [
+                    'Authorization' => 'Bearer ' . $account->getAccessToken(),
+                    'User-Agent' => $credentials->getUserAgent() ?: 'SocialApp/1.0',
+                ]
+            ]);
+
+            $data = $response->toArray();
+            
+            # ✅ EXTRAIRE SEULEMENT CE QU'ON UTILISE
+            $rules = [];
+            if (isset($data['rules']) && is_array($data['rules'])) {
+                foreach ($data['rules'] as $rule) {
+                    $rules[] = [
+                        'short_name' => $rule['short_name'] ?? '',
+                        'description' => $rule['description'] ?? '',
+                        'kind' => $rule['kind'] ?? 'all'  // comment, submission, all
+                    ];
+                }
+            }
+            
+            return [
+                'subreddit' => $subreddit,
+                'rules_count' => count($rules),
+                'rules_list' => $rules,
+                'fetched_at' => date('Y-m-d H:i:s')
+            ];
+            
+        } catch (\Exception $e) {
+            # ✅ LOG POUR DEBUG
+            error_log("Erreur récupération règles r/{$subreddit}: " . $e->getMessage());
+            throw new \Exception("Impossible de récupérer les règles de r/{$subreddit}: " . $e->getMessage());
+        }
+    }
 }

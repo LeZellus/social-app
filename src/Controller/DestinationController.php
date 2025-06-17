@@ -12,11 +12,18 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
+use App\Service\RedditApiService;
 
 #[Route('/destinations')]
 #[IsGranted('ROLE_USER')]
 class DestinationController extends AbstractController
 {
+    public function __construct(
+        private readonly EntityManagerInterface $entityManager,
+        private readonly RedditApiService $redditApi  // ← Injection du service
+    ) {}
+
+
     #[Route('/', name: 'app_destinations')]
     public function index(DestinationRepository $destinationRepository): Response
     {
@@ -42,6 +49,23 @@ class DestinationController extends AbstractController
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
+            if ($destination->getSocialAccount()->getPlatform() === 'reddit') {
+                $subreddit = str_replace('r/', '', $destination->getName());
+                $rules = $this->redditApi->getSubredditRules($subreddit, $destination->getSocialAccount());
+                
+                # Stocker règles structurées
+                $destination->setSettings([
+                    'rules' => $rules,
+                    'restrictions' => [
+                        'min_karma' => $rules['karma_required'] ?? 0,
+                        'min_account_age' => $rules['account_age_days'] ?? 0,
+                        'forbidden_words' => $rules['banned_keywords'] ?? [],
+                        'required_flair' => $rules['flair_required'] ?? false,
+                        'title_format' => $rules['title_pattern'] ?? null,
+                        'submission_type' => $rules['submission_type'] ?? 'any'  # text, link, any
+                    ]
+                ]);
+            }
             $entityManager->persist($destination);
             $entityManager->flush();
 

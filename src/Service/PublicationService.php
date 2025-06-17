@@ -137,28 +137,20 @@ class PublicationService
      */
     public function publishSinglePublication(PostPublication $publication): array
     {
-        try {
-            $platform = $publication->getSocialAccount()->getPlatform();
-            
-            switch ($platform) {
-                case 'reddit':
-                    return $this->publishToReddit($publication);
-                    
-                case 'twitter':
-                    return $this->publishToTwitter($publication);
-                    
-                default:
-                    throw new \Exception("Plateforme non supportée: {$platform}");
-            }
-        } catch (\Exception $e) {
-            $publication->markAsFailed($e->getMessage());
-            
-            return [
-                'success' => false,
-                'publication' => $publication,
-                'error' => $e->getMessage()
-            ];
+        # ✅ VALIDATION AVANT ENVOI
+        $destination = $this->getDestinationForPublication($publication);
+        $validationErrors = $this->postValidationService->validatePost(
+            $publication->getPost(), 
+            $destination
+        );
+        
+        if (!empty($validationErrors)) {
+            $publication->markAsFailed('Validation échouée: ' . implode(', ', $validationErrors));
+            return ['success' => false, 'validation_errors' => $validationErrors];
         }
+        
+        # Publication normale si validation OK
+        return $this->actuallyPublish($publication);
     }
 
     private function publishToReddit(PostPublication $publication): array
