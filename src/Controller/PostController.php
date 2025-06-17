@@ -72,27 +72,21 @@ class PostController extends AbstractController
             $entityManager->persist($post);
             $entityManager->flush();
 
-            // 🔥 FIX CRITIQUE : Gestion des publications
+            // 🔥 FIX : Gestion des publications
             if (!empty($selectedDestinations)) {
-                // Convertir les destinations en IDs
                 $destinationIds = [];
                 foreach ($selectedDestinations as $destination) {
                     $destinationIds[] = $destination->getId();
                 }
                 
-                // Créer les publications
+                // Créer les publications - retourne les publications créées
                 $publications = $this->publicationService->createPublicationsForDestinations($post, $destinationIds);
                 
-                // 🔥 NOUVEAU : Si publication immédiate, publier maintenant
+                // 🔥 FIX : Si publication immédiate, publier directement les publications créées
                 if ($publishOption === 'now') {
                     $results = [];
                     
-                    // Récupérer les publications pending du post
-                    $pendingPublications = $post->getPostPublications()->filter(
-                        fn($pub) => $pub->getStatus() === 'pending'
-                    );
-                    
-                    foreach ($pendingPublications as $publication) {
+                    foreach ($publications as $publication) {
                         $result = $this->publicationService->publishSinglePublication($publication);
                         $results[] = $result;
                     }
