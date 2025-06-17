@@ -48,7 +48,81 @@ class PostController extends AbstractController
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            return $this->handlePostSubmission($form, $post, $entityManager, false);
+            $publishOption = $form->get('publishOption')->getData();
+            $selectedDestinations = $form->get('destinations')->getData();
+            
+            // Définir le statut selon l'option choisie
+            switch ($publishOption) {
+                case 'now':
+                    $post->setStatus('published');
+                    break;
+                case 'schedule':
+                    $post->setStatus('scheduled');
+                    $scheduledAt = $form->get('scheduledAt')->getData();
+                    if ($scheduledAt) {
+                        $post->setScheduledAt($scheduledAt);
+                    }
+                    break;
+                case 'draft':
+                default:
+                    $post->setStatus('draft');
+                    break;
+            }
+
+            $entityManager->persist($post);
+            $entityManager->flush();
+
+            // 🔥 FIX CRITIQUE : Gestion des publications
+            if (!empty($selectedDestinations)) {
+                // Convertir les destinations en IDs
+                $destinationIds = [];
+                foreach ($selectedDestinations as $destination) {
+                    $destinationIds[] = $destination->getId();
+                }
+                
+                // Créer les publications
+                $publications = $this->publicationService->createPublicationsForDestinations($post, $destinationIds);
+                
+                // 🔥 NOUVEAU : Si publication immédiate, publier maintenant
+                if ($publishOption === 'now') {
+                    $results = [];
+                    
+                    // Récupérer les publications pending du post
+                    $pendingPublications = $post->getPostPublications()->filter(
+                        fn($pub) => $pub->getStatus() === 'pending'
+                    );
+                    
+                    foreach ($pendingPublications as $publication) {
+                        $result = $this->publicationService->publishSinglePublication($publication);
+                        $results[] = $result;
+                    }
+                    
+                    // Flush pour sauvegarder les changements de statut
+                    $entityManager->flush();
+                    
+                    $successCount = count(array_filter($results, fn($r) => $r['success']));
+                    $totalCount = count($results);
+                    
+                    if ($successCount === $totalCount) {
+                        $this->addFlash('success', "Post publié avec succès sur {$successCount} destination(s) !");
+                    } else {
+                        $this->addFlash('warning', "Post publié sur {$successCount}/{$totalCount} destination(s).");
+                        
+                        // Afficher les erreurs
+                        foreach ($results as $result) {
+                            if (!$result['success']) {
+                                $this->addFlash('error', $result['error']);
+                            }
+                        }
+                    }
+                } else {
+                    $this->addFlash('success', 'Post créé avec succès !');
+                }
+            } else {
+                $this->addFlash('success', 'Post créé en brouillon !');
+            }
+
+            return $this->redirectToRoute('app_posts');
         }
 
         return $this->render('posts/new.html.twig', [
@@ -68,84 +142,71 @@ class PostController extends AbstractController
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            return $this->handlePostSubmission($form, $post, $entityManager, true);
+            $publishOption = $form->get('publishOption')->getData();
+            $selectedDestinations = $form->get('destinations')->getData();
+            
+            // Définir le statut selon l'option choisie
+            switch ($publishOption) {
+                case 'now':
+                    $post->setStatus('published');
+                    break;
+                case 'schedule':
+                    $post->setStatus('scheduled');
+                    $scheduledAt = $form->get('scheduledAt')->getData();
+                    if ($scheduledAt) {
+                        $post->setScheduledAt($scheduledAt);
+                    }
+                    break;
+                case 'draft':
+                default:
+                    $post->setStatus('draft');
+                    $post->setScheduledAt(null);
+                    break;
+            }
+
+            $entityManager->flush();
+
+            // Gestion des publications pour l'édition
+            if (!empty($selectedDestinations)) {
+                $this->updatePostPublications($post, $selectedDestinations, $entityManager);
+                
+                // Si publication immédiate, publier maintenant
+                if ($publishOption === 'now') {
+                    $pendingPublications = $post->getPostPublications()->filter(
+                        fn($pub) => $pub->getStatus() === 'pending'
+                    );
+                    
+                    $results = [];
+                    foreach ($pendingPublications as $publication) {
+                        $result = $this->publicationService->publishSinglePublication($publication);
+                        $results[] = $result;
+                    }
+                    
+                    $entityManager->flush();
+                    
+                    $successCount = count(array_filter($results, fn($r) => $r['success']));
+                    $totalCount = count($results);
+                    
+                    if ($successCount === $totalCount) {
+                        $this->addFlash('success', "Post modifié et publié sur {$successCount} destination(s) !");
+                    } else {
+                        $this->addFlash('warning', "Post publié sur {$successCount}/{$totalCount} destination(s).");
+                    }
+                } else {
+                    $this->addFlash('success', 'Post modifié avec succès !');
+                }
+            } else {
+                $this->removeUnpublishedPublications($post, $entityManager);
+                $this->addFlash('success', 'Post modifié et publications mises à jour !');
+            }
+
+            return $this->redirectToRoute('app_posts');
         }
 
         return $this->render('posts/edit.html.twig', [
             'form' => $form,
             'post' => $post,
         ]);
-    }
-
-    private function handlePostSubmission($form, Post $post, EntityManagerInterface $entityManager, bool $isEdit): Response
-    {
-        $publishOption = $form->get('publishOption')->getData();
-        $selectedDestinations = $form->get('destinations')->getData();
-        
-        // Définir le statut selon l'option choisie
-        switch ($publishOption) {
-            case 'now':
-                $post->setStatus('published');
-                break;
-            case 'schedule':
-                $post->setStatus('scheduled');
-                $scheduledAt = $form->get('scheduledAt')->getData();
-                if ($scheduledAt) {
-                    $post->setScheduledAt($scheduledAt);
-                }
-                break;
-            case 'draft':
-            default:
-                $post->setStatus('draft');
-                $post->setScheduledAt(null);
-                break;
-        }
-
-        if (!$isEdit) {
-            $entityManager->persist($post);
-        }
-        $entityManager->flush();
-
-        // Gestion des publications
-        if (!empty($selectedDestinations)) {
-            if ($isEdit) {
-                $this->updatePostPublications($post, $selectedDestinations, $entityManager);
-            } else {
-                $destinationIds = array_map(fn($dest) => $dest->getId(), $selectedDestinations->toArray());
-                $publications = $this->publicationService->createPublicationsForDestinations($post, $destinationIds);
-            }
-
-            // Si publication immédiate, publier maintenant
-            if ($publishOption === 'now') {
-                $publications = $post->getPostPublications()->filter(fn($pub) => $pub->getStatus() === 'pending');
-                $results = [];
-                foreach ($publications as $publication) {
-                    $result = $this->publicationService->publishSinglePublication($publication);
-                    $results[] = $result;
-                }
-                
-                $successCount = count(array_filter($results, fn($r) => $r['success']));
-                $totalCount = count($results);
-                
-                if ($successCount === $totalCount) {
-                    $this->addFlash('success', "Post publié avec succès sur {$successCount} destination(s) !");
-                } else {
-                    $this->addFlash('warning', "Post publié sur {$successCount}/{$totalCount} destination(s). Vérifiez les erreurs.");
-                }
-            } else {
-                $action = $isEdit ? 'modifié' : 'créé';
-                $this->addFlash('success', "Post {$action} avec succès !");
-            }
-        } else {
-            if ($isEdit) {
-                $this->removeUnpublishedPublications($post, $entityManager);
-                $this->addFlash('success', 'Post modifié et publications mises à jour !');
-            } else {
-                $this->addFlash('success', 'Post créé en brouillon !');
-            }
-        }
-
-        return $this->redirectToRoute('app_posts');
     }
 
     private function updatePostPublications(Post $post, $selectedDestinations, EntityManagerInterface $entityManager): void
@@ -162,7 +223,11 @@ class PostController extends AbstractController
 
         // Créer les nouvelles publications
         if (!empty($selectedDestinations)) {
-            $destinationIds = array_map(fn($dest) => $dest->getId(), $selectedDestinations->toArray());
+            $destinationIds = [];
+            foreach ($selectedDestinations as $destination) {
+                $destinationIds[] = $destination->getId();
+            }
+            
             $this->publicationService->createPublicationsForDestinations($post, $destinationIds);
         }
 
