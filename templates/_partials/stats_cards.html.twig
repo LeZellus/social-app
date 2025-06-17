@@ -1,0 +1,45 @@
+<div class="wrapper-simple">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg shadow p-6 text-white">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    {{ firstCard.icon|raw }}
+                </div>
+                <div class="ml-5 w-0 flex-1">
+                    <dl>
+                        <dt class="text-sm font-medium text-blue-100 truncate">{{ firstCard.label }}</dt>
+                        <dd class="text-3xl font-semibold text-white">{{ firstCard.value }}</dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-gradient-to-r from-yellow-500 to-yellow-600 rounded-lg shadow p-6 text-white">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    {{ secondCard.icon|raw }}
+                </div>
+                <div class="ml-5 w-0 flex-1">
+                    <dl>
+                        <dt class="text-sm font-medium text-yellow-100 truncate">{{ secondCard.label }}</dt>
+                        <dd class="text-3xl font-semibold text-white">{{ secondCard.value }}</dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-gradient-to-r from-green-500 to-green-600 rounded-lg shadow p-6 text-white">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    {{ thirdCard.icon|raw }}
+                </div>
+                <div class="ml-5 w-0 flex-1">
+                    <dl>
+                        <dt class="text-sm font-medium text-green-100 truncate">{{ thirdCard.label }}</dt>
+                        <dd class="text-3xl font-semibold text-white">{{ thirdCard.value }}</dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

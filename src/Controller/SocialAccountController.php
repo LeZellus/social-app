@@ -4,6 +4,7 @@ namespace App\Controller;
 
 use App\Entity\SocialAccount;
 use App\Repository\SocialAccountRepository;
+use App\Repository\PostPublicationRepository;
 use App\Service\RedditApiService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -16,12 +17,21 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 class SocialAccountController extends AbstractController
 {
     #[Route('/', name: 'app_social_accounts')]
-    public function index(SocialAccountRepository $repository): Response
-    {
-        $accounts = $repository->findBy(['user' => $this->getUser()]);
-
+    public function index(
+        SocialAccountRepository $repository,
+        PostPublicationRepository $publicationRepository
+    ): Response {
+        $user = $this->getUser();
+        $accounts = $repository->findBy(['user' => $user]);
+        
+        // Statistiques pour les cards
+        $publicationStats = $publicationRepository->getUserStats($user);
+        $platformCount = $repository->countByPlatform($user);
+        
         return $this->render('social_accounts/index.html.twig', [
             'accounts' => $accounts,
+            'publicationStats' => $publicationStats,
+            'platformCount' => count($platformCount), // Nombre de plateformes distinctes
         ]);
     }
 
