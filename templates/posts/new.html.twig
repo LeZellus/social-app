@@ -104,13 +104,20 @@
             </div>
 
             <!-- Options de publication -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div data-controller="publish" class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                     {{ form_label(form.publishOption, null, {'label_attr': {'class': 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2'}}) }}
-                    {{ form_widget(form.publishOption, {'attr': {'class': 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white', 'id': 'publish-option'}}) }}
+                    {{ form_widget(form.publishOption, {
+                        'attr': {
+                            'class': 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white', 
+                            'id': 'publish-option',
+                            'data-publish-target': 'publishOption',
+                            'data-action': 'change->publish#optionChanged'
+                        }
+                    }) }}
                 </div>
 
-                <div id="scheduled-date-container" style="display: none;">
+                <div data-publish-target="scheduledContainer" id="scheduled-date-container" style="display: none;">
                     {{ form_label(form.scheduledAt, null, {'label_attr': {'class': 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2'}}) }}
                     {{ form_widget(form.scheduledAt, {'attr': {'class': 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white'}}) }}
                 </div>
@@ -134,7 +141,7 @@
                 </a>
                 <button type="submit" 
                         class="px-6 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                    <span id="submit-text">Créer le post</span>
+                    <span id="submit-text" data-publish-target="submitText">Créer le post</span>
                 </button>
             </div>
 
