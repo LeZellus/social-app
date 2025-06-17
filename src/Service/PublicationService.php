@@ -83,6 +83,31 @@ class PublicationService
         return $publication;
     }
 
+    /**
+     * MÉTHODE MANQUANTE : Récupérer la destination pour une publication
+     */
+    private function getDestinationForPublication(PostPublication $publication): Destination
+    {
+        // Récupérer la destination via le nom stocké dans la publication
+        $destination = $this->destinationRepository->findOneBy([
+            'name' => $publication->getDestination(),
+            'user' => $publication->getPost()->getUser(),
+            'socialAccount' => $publication->getSocialAccount()
+        ]);
+
+        if (!$destination) {
+            throw new \RuntimeException(
+                sprintf(
+                    'Destination "%s" introuvable pour la publication ID %d',
+                    $publication->getDestination(),
+                    $publication->getId()
+                )
+            );
+        }
+
+        return $destination;
+    }
+
     private function adaptContentForPlatform(PostPublication $publication, Destination $destination): void
     {
         $platform = $destination->getSocialAccount()->getPlatform();
@@ -137,91 +162,68 @@ class PublicationService
      */
     public function publishSinglePublication(PostPublication $publication): array
     {
-        # ✅ VALIDATION AVANT ENVOI
-        $destination = $this->getDestinationForPublication($publication);
-        $validationErrors = $this->postValidationService->validatePost(
-            $publication->getPost(), 
-            $destination
-        );
-        
-        if (!empty($validationErrors)) {
-            $publication->markAsFailed('Validation échouée: ' . implode(', ', $validationErrors));
-            return ['success' => false, 'validation_errors' => $validationErrors];
-        }
-        
-        # Publication normale si validation OK
-        return $this->actuallyPublish($publication);
-    }
-
-    private function publishToReddit(PostPublication $publication): array
-    {
-        $subreddit = $publication->getSubreddit();
-        $title = $publication->getAdaptedTitle();
-        $content = $publication->getAdaptedContent();
-        $account = $publication->getSocialAccount();
-
-        if ($publication->getPost()->getMediaFiles()) {
-            // Post avec lien/média
-            $mediaUrl = $publication->getPost()->getMediaFiles()[0] ?? null;
-            $response = $this->redditApi->submitPost($title, $mediaUrl, $subreddit, $account);
-        } else {
-            // Post texte
-            $response = $this->redditApi->submitPost($title, $content, $subreddit, $account);
-        }
-
-        if (isset($response['json']['data']['name'])) {
-            $postId = $response['json']['data']['name'];
-            $postUrl = "https://reddit.com/r/{$subreddit}/comments/" . str_replace('t3_', '', $postId);
+        try {
+            // ✅ VALIDATION BASIQUE (on peut ajouter PostValidationService plus tard)
+            $destination = $this->getDestinationForPublication($publication);
             
-            $publication->markAsPublished($postId, $postUrl, $response);
+            // Validation simple pour l'instant
+            if (empty($publication->getAdaptedTitle()) && empty($publication->getAdaptedContent())) {
+                $publication->setStatus('failed');
+                $publication->setErrorMessage('Contenu vide');
+                return ['success' => false, 'error' => 'Contenu vide'];
+            }
+
+            $platform = $publication->getSocialAccount()->getPlatform();
+            
+            switch ($platform) {
+                case 'reddit':
+                    return $this->publishToReddit($publication, $destination);
+                    
+                case 'twitter':
+                    return $this->publishToTwitter($publication, $destination);
+                    
+                default:
+                    throw new \InvalidArgumentException("Plateforme non supportée: {$platform}");
+            }
+            
+        } catch (\Exception $e) {
+            $publication->setStatus('failed');
+            $publication->setErrorMessage($e->getMessage());
             
             return [
-                'success' => true,
-                'publication' => $publication,
-                'response' => $response
+                'success' => false,
+                'error' => $e->getMessage()
             ];
-        } else {
-            throw new \Exception('Erreur lors de la publication Reddit: ' . json_encode($response));
         }
     }
 
-    private function publishToTwitter(PostPublication $publication): array
+    private function publishToReddit(PostPublication $publication, Destination $destination): array
+    {
+        try {
+            $result = $this->redditApi->submitPost(
+                $publication->getAdaptedTitle(),
+                $publication->getAdaptedContent(),
+                $destination->getName(), // subreddit
+                $publication->getSocialAccount()
+            );
+
+            $publication->setStatus('published');
+            $publication->setPublishedAt(new \DateTimeImmutable());
+            $publication->setPlatformUrl($result['url'] ?? null);
+
+            return ['success' => true, 'url' => $result['url'] ?? null];
+            
+        } catch (\Exception $e) {
+            $publication->setStatus('failed');
+            $publication->setErrorMessage($e->getMessage());
+            
+            return ['success' => false, 'error' => $e->getMessage()];
+        }
+    }
+
+    private function publishToTwitter(PostPublication $publication, Destination $destination): array
     {
         // TODO: Implémenter l'API Twitter
-        throw new \Exception('Publication Twitter pas encore implémentée');
-    }
-
-    /**
-     * Obtenir les statistiques de publication par destination
-     */
-    public function getDestinationStats(Destination $destination): array
-    {
-        $qb = $this->entityManager->createQueryBuilder();
-        
-        $stats = $qb
-            ->select('pp.status, COUNT(pp.id) as count')
-            ->from(PostPublication::class, 'pp')
-            ->where('pp.destination = :destination')
-            ->andWhere('pp.socialAccount = :account')
-            ->setParameter('destination', $destination->getName())
-            ->setParameter('account', $destination->getSocialAccount())
-            ->groupBy('pp.status')
-            ->getQuery()
-            ->getResult();
-
-        $result = [
-            'total' => 0,
-            'published' => 0,
-            'pending' => 0,
-            'failed' => 0,
-            'scheduled' => 0
-        ];
-
-        foreach ($stats as $stat) {
-            $result[$stat['status']] = (int) $stat['count'];
-            $result['total'] += (int) $stat['count'];
-        }
-
-        return $result;
+        throw new \Exception('API Twitter pas encore implémentée');
     }
 }

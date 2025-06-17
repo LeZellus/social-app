@@ -3,7 +3,7 @@
 {% block title %}Modifier le Post{% endblock %}
 
 {% block body %}
-<div class="container mx-auto px-4 py-6 max-w-4xl">
+<div class="sm:ml-64 p-4 lg:p-6 min-h-screen">
     <div class="mb-6">
         <a href="{{ path('app_posts') }}" 
            class="text-blue-600 hover:text-blue-700 dark:text-blue-400 text-sm font-medium">
@@ -11,85 +11,10 @@
         </a>
     </div>
 
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
-        <div class="p-6 border-b border-gray-200 dark:border-gray-700">
-            <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Modifier le Post</h1>
-            <p class="text-gray-600 dark:text-gray-400 mt-2">
-                Modifiez votre post et mettez à jour ses destinations.
-            </p>
-        </div>
-
-        <div class="p-6">
-            {{ form_start(form, {'attr': {'class': 'space-y-6', 'id': 'post-form'}}) }}
-            
-            <!-- Titre -->
-            <div>
-                {{ form_label(form.title, null, {'label_attr': {'class': 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2'}}) }}
-                {{ form_widget(form.title, {'attr': {'class': 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white'}}) }}
-                {{ form_errors(form.title, {'error_attr': {'class': 'text-red-600 dark:text-red-400 text-sm mt-1'}}) }}
-            </div>
-
-            <!-- Contenu -->
-            <div>
-                {{ form_label(form.content, null, {'label_attr': {'class': 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2'}}) }}
-                {{ form_widget(form.content, {'attr': {'class': 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white', 'rows': 8}}) }}
-                {{ form_errors(form.content, {'error_attr': {'class': 'text-red-600 dark:text-red-400 text-sm mt-1'}}) }}
-            </div>
-
-            <!-- Publications existantes -->
-            {% if post.postPublications is not empty %}
-                <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-                    <h3 class="text-sm font-medium text-blue-900 dark:text-blue-200 mb-2">
-                        Publications actuelles
-                    </h3>
-                    <div class="space-y-2">
-                        {% for publication in post.postPublications %}
-                            <div class="flex items-center justify-between bg-white dark:bg-gray-800 px-3 py-2 rounded border">
-                                <div class="flex items-center">
-                                    {% set platform = publication.socialAccount.platform %}
-                                    {% if platform == 'reddit' %}
-                                        <div class="w-6 h-6 bg-orange-500 rounded-full flex items-center justify-center mr-2">
-                                            <span class="text-white text-xs font-bold">R</span>
-                                        </div>
-                                    {% elseif platform == 'twitter' %}
-                                        <div class="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center mr-2">
-                                            <span class="text-white text-xs font-bold">T</span>
-                                        </div>
-                                    {% endif %}
-                                    <span class="text-sm text-gray-700 dark:text-gray-300">
-                                        {{ publication.destination }}
-                                    </span>
-                                </div>
-                                <span class="text-xs px-2 py-1 rounded-full 
-                                    {% if publication.status == 'published' %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200
-                                    {% elseif publication.status == 'pending' %}bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200
-                                    {% elseif publication.status == 'failed' %}bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200
-                                    {% else %}bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200{% endif %}">
-                                    {{ publication.status|title }}
-                                </span>
-                            </div>
-                        {% endfor %}
-                    </div>
-                    <p class="text-xs text-blue-700 dark:text-blue-300 mt-2">
-                        Note : Les modifications ne s'appliquent qu'aux publications non encore effectuées.
-                    </p>
-                </div>
-            {% endif %}
-
-            <!-- Actions -->
-            <div class="flex items-center justify-between pt-6 border-t border-gray-200 dark:border-gray-700">
-                <a href="{{ path('app_posts') }}" 
-                   class="px-4 py-2 text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors">
-                    Annuler
-                </a>
-                <button type="submit" 
-                        class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors">
-                    Sauvegarder les modifications
-                </button>
-            </div>
-
-            {{ form_end(form) }}
-        </div>
-    </div>
+    {% include 'posts/_form.html.twig' with {
+        'form': form,
+        'post': post,
+        'is_edit': true
+    } %}
 </div>
 {% endblock %}
