@@ -130,44 +130,43 @@
                             </div>
 
                             <!-- Actions Menu -->
-                            <div class="relative ml-4">
-                                <button type="button" class="post-menu-button p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" data-post-id="{{ post.id }}">
-                                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                                        <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z"></path>
+                            <div class="relative" 
+                                data-controller="menu" 
+                                data-action="click@window->menu#closeOnClickOutside">
+                                
+                                <button data-action="click->menu#toggle" 
+                                        class="post-menu-button inline-flex items-center p-2 text-sm font-medium text-center text-gray-900 bg-white rounded-lg hover:bg-gray-100 focus:ring-4 focus:outline-none dark:text-white focus:ring-gray-50 dark:bg-gray-800 dark:hover:bg-gray-700 dark:focus:ring-gray-600">
+                                    <svg class="w-4 h-4" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 4 15">
+                                        <path d="m3.5 1.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zm0 6.041a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zm0 5.959a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0z"/>
                                     </svg>
                                 </button>
                                 
-                                <div class="post-menu hidden absolute right-0 mt-2 w-48 bg-white dark:bg-gray-700 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 z-10" data-post-id="{{ post.id }}">
-                                    <div class="py-1">
-                                        <a href="{{ path('app_post_edit', {id: post.id}) }}" 
-                                           class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600">
-                                            <svg class="w-4 h-4 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                                            </svg>
-                                            Modifier
-                                        </a>
-                                        
-                                        {% if post.status == 'draft' %}
-                                            <a href="{{ path('app_post_publish', {id: post.id}) }}" 
-                                               class="block px-4 py-2 text-sm text-green-700 dark:text-green-400 hover:bg-gray-100 dark:hover:bg-gray-600">
+                                <div data-menu-target="menu"
+                                    class="post-menu hidden absolute right-0 top-8 z-10 bg-white divide-y divide-gray-100 rounded-lg shadow w-44 dark:bg-gray-700">
+                                    <ul class="py-2 text-sm text-gray-700 dark:text-gray-200">
+                                        <li>
+                                            <a href="{{ path('app_post_edit', {'id': post.id}) }}" 
+                                            class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 dark:hover:text-white">
                                                 <svg class="w-4 h-4 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
                                                 </svg>
-                                                Publier maintenant
+                                                Modifier
                                             </a>
-                                        {% endif %}
-                                        
-                                        <form method="post" action="{{ path('app_post_delete', {id: post.id}) }}" class="inline">
-                                            <button type="submit" 
-                                                    onclick="return confirm('Êtes-vous sûr de vouloir supprimer ce post ?')"
-                                                    class="w-full text-left block px-4 py-2 text-sm text-red-700 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-600">
-                                                <svg class="w-4 h-4 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                                                </svg>
-                                                Supprimer
-                                            </button>
-                                        </form>
-                                    </div>
+                                        </li>
+                                        <li>
+                                            <form method="post" action="{{ path('app_post_delete', {'id': post.id}) }}" 
+                                                onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer ce post ?');">
+                                                <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ post.id) }}">
+                                                <button type="submit" 
+                                                        class="w-full text-left block px-4 py-2 text-sm text-red-700 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-600">
+                                                    <svg class="w-4 h-4 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                                    </svg>
+                                                    Supprimer
+                                                </button>
+                                            </form>
+                                        </li>
+                                    </ul>
                                 </div>
                             </div>
                         </div>
@@ -177,55 +176,4 @@
         </div>
     {% endif %}
 </div>
-
-<!-- JavaScript for dropdown menus -->
-<script>
-document.addEventListener('turbo:load', function() {
-    // Handle dropdown menus
-    const menuButtons = document.querySelectorAll('.post-menu-button');
-    
-    menuButtons.forEach(button => {
-        button.addEventListener('click', function(e) {
-            e.stopPropagation();
-            e.preventDefault();
-            
-            const postId = this.dataset.postId;
-            // CORRECTION: Chercher le menu avec l'attribut data-post-id correspondant
-            const menu = document.querySelector(`.post-menu[data-post-id="${postId}"]`);
-            
-            if (!menu) {
-                console.warn(`Menu non trouvé pour le post ${postId}`);
-                return;
-            }
-            
-            // Close all other menus first
-            document.querySelectorAll('.post-menu').forEach(otherMenu => {
-                if (otherMenu !== menu) {
-                    otherMenu.classList.add('hidden');
-                }
-            });
-            
-            // Toggle current menu
-            menu.classList.toggle('hidden');
-        });
-    });
-    
-    // Close menus when clicking outside
-    document.addEventListener('click', function(e) {
-        // Ne pas fermer si on clique sur un bouton de menu ou à l'intérieur d'un menu
-        if (!e.target.closest('.post-menu-button') && !e.target.closest('.post-menu')) {
-            document.querySelectorAll('.post-menu').forEach(menu => {
-                menu.classList.add('hidden');
-            });
-        }
-    });
-    
-    // Empêcher la fermeture du menu quand on clique à l'intérieur
-    document.querySelectorAll('.post-menu').forEach(menu => {
-        menu.addEventListener('click', function(e) {
-            e.stopPropagation();
-        });
-    });
-});
-</script>
 {% endblock %}
