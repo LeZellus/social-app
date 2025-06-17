@@ -20,19 +20,38 @@
         </div>
 
         <div class="p-6">
-            {{ form_start(form, {'attr': {'class': 'space-y-6', 'id': 'post-form'}}) }}
+            {{ form_start(form, {
+                'attr': {
+                    'class': 'space-y-6', 
+                    'id': 'post-form',
+                    'data-controller': 'preview'
+                }
+            }) }}
             
             <!-- Titre -->
             <div>
                 {{ form_label(form.title, null, {'label_attr': {'class': 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2'}}) }}
-                {{ form_widget(form.title, {'attr': {'class': 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white'}}) }}
+                {{ form_widget(form.title, {
+                    'attr': {
+                        'class': 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white',
+                        'data-preview-target': 'title',
+                        'data-action': 'input->preview#titleChanged'
+                    }
+                }) }}
                 {{ form_errors(form.title, {'error_attr': {'class': 'text-red-600 dark:text-red-400 text-sm mt-1'}}) }}
             </div>
 
             <!-- Contenu -->
             <div>
                 {{ form_label(form.content, null, {'label_attr': {'class': 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2'}}) }}
-                {{ form_widget(form.content, {'attr': {'class': 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white', 'rows': 8}}) }}
+                {{ form_widget(form.content, {
+                    'attr': {
+                        'class': 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white', 
+                        'rows': 8,
+                        'data-preview-target': 'content',
+                        'data-action': 'input->preview#contentChanged'
+                    }
+                }) }}
                 {{ form_errors(form.content, {'error_attr': {'class': 'text-red-600 dark:text-red-400 text-sm mt-1'}}) }}
                 <div class="text-sm text-gray-500 dark:text-gray-400 mt-1">
                     Le contenu sera automatiquement adapté à chaque plateforme.
@@ -128,7 +147,9 @@
                 <h3 class="text-sm font-medium text-blue-800 dark:text-blue-200 mb-2">
                     Aperçu de la publication
                 </h3>
-                <div id="preview-content" class="text-sm text-blue-700 dark:text-blue-300">
+                <div data-preview-target="preview" 
+                    id="preview-content" 
+                    class="text-sm text-blue-700 dark:text-blue-300">
                     Saisissez votre contenu pour voir l'aperçu...
                 </div>
             </div>
